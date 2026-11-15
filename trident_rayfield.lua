@@ -16,6 +16,20 @@
       * ESP com dois backends: Drawing (PC/executor completo) e Highlight +
         BillboardGui (Arceus X / mobile, sem Drawing).
 
+    Build 2.2 (mineracao de 86 repositorios publicos):
+      * Silent aim de projetil: hook no createProjectile do
+        RangedWeaponClient (getgc + debug.getconstants "ProjectileSpeed"),
+        com predicao por ProjectileSpeed/ProjectileDrop e velocidade do
+        alvo. Fallback automatico para o silent aim antigo.
+      * Dash slide por TCP: FireServer(3,true,Vector3.xAxis) +
+        FireServer(2,true) com empurrao na direcao da camera e release
+        depois de X segundos (fonte: KumaoRoblox/TridentSurvival).
+      * Arma equipada lida do modulo GetEquippedItem via getgc
+        (fonte: Panda22MyGod/TridentSurvival), com fallback no Tool.
+      * Containers: nomes reais Metal, Cardboard, Crate e deteccao por
+        filho Crates/Cables/Lid (fonte: Ocel-hub).
+      * EntityMap via getgc para farm/kill aura.
+
     Build 2.1 (correcao do erro em jogo + fontes novas):
       * FIX do erro "attempt to modify a readonly table": era o
         math.clamp = ... no topo. math e readonly no Luau, entao o clamp
@@ -211,7 +225,7 @@ Window:Notify({
 pcall(function()
     Window:Popup({
         title = "trident • rayfield gen2",
-        subtitle = "build 2.1",
+        subtitle = "build 2.2",
         boxes = {
             { title = "Silent aim", description = "Hook no modulo de camera do jogo ou em Camera.CFrame, com predicao, FOV e checagem de visao." },
             { title = "ESP completo", description = "Usa Drawing quando o executor tem; senao cai para Highlight + Billboard." },
@@ -443,6 +457,9 @@ local function collectEntities()
                         local tool = v:FindFirstChildOfClass("Tool")
                         if tool then weapon = tool.Name end
                     end)
+                    if not weapon and v == LocalPlayer.Character then
+                        weapon = equippedItemName()
+                    end
                     local isPlayer = plr ~= nil or Players:FindFirstChild(v.Name) ~= nil or v.Name == "Player"
                     table.insert(out, {
                         model = v,
@@ -1365,6 +1382,286 @@ addUpdater(updateFarm)
 loadCatalog()
 
 --=====================================================================
+-- 9.9 SILENT AIM DE PROJETIL + DASH TCP + ARMA EQUIPADA
+--=====================================================================
+-- Fonte (mineracao de 86 repos publicos):
+--   Mick-gordon/Trident-Survival-Silent-aim -> hook no createProjectile
+--     do RangedWeaponClient usando getgc + debug.getconstants
+--     ("ProjectileSpeed"), com predicao por ProjectileSpeed/Drop.
+--   KumaoRoblox/TridentSurvival -> TCP 2/3 (slide) e TCP 23 (chat).
+--   Panda22MyGod/TridentSurvival -> GetEquippedItem via getgc.
+--   Rostik22803/Ocel-hub-trident-survival -> containers por nome de
+--     filho ("Crates", "Cables") e materiais (Metal, Metal2...).
+
+local ProjectileAim = {
+    enabled = false,
+    partName = "Head",
+    fov = 520,
+    hooked = false,
+    status = "nao instalado",
+    players = nil,
+    shots = 0,
+    history = {},
+}
+
+local equippedModule = nil
+local equippedChecked = false
+
+local function findEquippedModule()
+    if equippedModule or equippedChecked then return equippedModule end
+    equippedChecked = true
+    if type(getgc) ~= "function" then return nil end
+    pcall(function()
+        for _, v in pairs(getgc(true)) do
+            if type(v) == "table" and rawget(v, "GetEquippedItem") ~= nil then
+                equippedModule = v
+                return
+            end
+        end
+    end)
+    return equippedModule
+end
+
+-- nome da arma na mao (modulo do jogo, com fallback no Tool)
+local function equippedItemName()
+    local mod = findEquippedModule()
+    if mod then
+        local ok, item = pcall(function() return mod.GetEquippedItem() end)
+        if ok and item ~= nil then
+            if type(item) == "table" then
+                local name = item.type or item.name or item.id
+                if type(name) == "string" then return name end
+            elseif type(item) == "string" then
+                return item
+            end
+        end
+    end
+    local char = LocalPlayer.Character
+    if char then
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool then return tool.Name end
+    end
+    return nil
+end
+
+-- ---------------------------------------------------------------------
+-- hook no createProjectile
+-- ---------------------------------------------------------------------
+local function findProjectileHook()
+    if type(getgc) ~= "function" then return nil, nil end
+    if type(debug) ~= "table" then return nil, nil end
+
+    local createProjectile, playersTable
+    pcall(function()
+        for _, v in pairs(getgc()) do
+            if type(v) == "function" then
+                local okSrc, src = pcall(function() return debug.info(v, "s") end)
+                if okSrc and type(src) == "string" then
+                    if string.find(src, "RangedWeaponClient", 1, true) then
+                        local okConst, consts = pcall(function() return debug.getconstants(v) end)
+                        if okConst and type(consts) == "table" and consts[1] == "ProjectileSpeed" then
+                            createProjectile = v
+                        end
+                    elseif string.find(src, "PlayerClient", 1, true) then
+                        local okName, nm = pcall(function() return debug.info(v, "n") end)
+                        if okName and nm == "updatePlayers" then
+                            local okUp, up = pcall(function() return debug.getupvalue(v, 1) end)
+                            if okUp and type(up) == "table" then playersTable = up end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    return createProjectile, playersTable
+end
+
+local function rememberPosition(model, position)
+    if not model or not position then return nil end
+    local now = os.clock()
+    local h = ProjectileAim.history[model]
+    if not h then
+        ProjectileAim.history[model] = { pos = position, time = now }
+        return nil
+    end
+    local dt = now - h.time
+    local velocity = nil
+    if dt > 0.001 and dt < 1 then
+        velocity = (position - h.pos) / dt
+    end
+    h.pos, h.time = position, now
+    return velocity
+end
+
+local function projectileTarget()
+    local center = viewportCenter()
+    local best, bestDist, bestPart, bestVel = nil, ProjectileAim.fov, nil, nil
+    for _, ent in pairs(getEntities()) do
+        local part = ent.model:FindFirstChild(ProjectileAim.partName) or ent.head
+        local pos = partPos(part)
+        if pos then
+            local screen = projectPoint(pos)
+            if screen then
+                local dx = screen.X - center.X
+                local dy = screen.Y - center.Y
+                local dist = math.sqrt(dx * dx + dy * dy)
+                local allowed = ent.isPlayer or Aim.targetNpc
+                if allowed and dist <= bestDist then
+                    best, bestDist, bestPart = ent, dist, part
+                    bestVel = rememberPosition(ent.model, pos)
+                end
+            end
+        end
+    end
+    if not best or not bestPart then return nil end
+    return partPos(bestPart), bestVel, bestPart
+end
+
+local function installProjectileAim()
+    if ProjectileAim.hooked then return true end
+    if type(hookfunction) ~= "function" then
+        ProjectileAim.status = "executor sem hookfunction"
+        return false
+    end
+
+    local createProjectile, playersTable = findProjectileHook()
+    if not createProjectile then
+        ProjectileAim.status = "createProjectile nao encontrado"
+        return false
+    end
+
+    ProjectileAim.players = playersTable
+    local original
+    local ok = pcall(function()
+        original = hookfunction(createProjectile, function(cFrame, weaponInfo, isLocal, p63, p64)
+            if ProjectileAim.enabled and isLocal and cFrame then
+                local targetPos, velocity = projectileTarget()
+                if targetPos then
+                    local speed, drop = 800, 1
+                    pcall(function()
+                        speed = tonumber(weaponInfo.ProjectileSpeed) or 800
+                        drop = tonumber(weaponInfo.ProjectileDrop) or 1
+                    end)
+                    if speed > 0 then
+                        local okCalc = pcall(function()
+                            local travel = (targetPos - cFrame.Position).Magnitude / speed
+                            local pos = targetPos
+                            if velocity then pos = targetPos + velocity * travel end
+                            travel = (pos - cFrame.Position).Magnitude / speed
+                            if drop and drop ~= 0 then
+                                pos = pos - Vector3.yAxis * (-(drop) ^ (travel * drop) + 1)
+                            end
+                            cFrame = CFrame.new(cFrame.Position, pos)
+                            ProjectileAim.shots = ProjectileAim.shots + 1
+                        end)
+                    end
+                end
+            end
+            return original(cFrame, weaponInfo, isLocal, p63, p64)
+        end)
+    end)
+
+    ProjectileAim.hooked = ok
+    ProjectileAim.status = ok and "hook ativo" or "hook recusado"
+    Log:add("silent aim de projetil: " .. ProjectileAim.status)
+    return ok
+end
+
+-- ---------------------------------------------------------------------
+-- dash / slide via TCP (ids 2 e 3)
+-- ---------------------------------------------------------------------
+local Dash = {
+    enabled = false,
+    speed = 62,
+    duration = 1.4,
+    active = false,
+    timer = 0,
+    cooldown = 0,
+}
+
+local function flatLook()
+    local ok, look = pcall(function() return Camera.CFrame.LookVector end)
+    if ok and typeof(look) == "Vector3" then
+        local flat = Vector3.new(look.X, 0, look.Z)
+        if flat.Magnitude > 0.001 then return flat.Unit end
+    end
+    return Vector3.new(0, 0, -1)
+end
+
+local function isMoving()
+    local part = Game.middle
+    if not part then return false end
+    local ok, vel = pcall(function() return part.AssemblyLinearVelocity end)
+    if ok and typeof(vel) == "Vector3" then return vel.Magnitude > 2 end
+    return false
+end
+
+local function dashStart()
+    local tcp = Game.tcp
+    if not tcp then return false end
+    local ok = pcall(function()
+        tcp:FireServer(3, true, Vector3.xAxis)
+        tcp:FireServer(2, true)
+    end)
+    Dash.active = true
+    Dash.timer = 0
+    return ok
+end
+
+local function dashStop()
+    local tcp = Game.tcp
+    if tcp then
+        pcall(function()
+            tcp:FireServer(3, false)
+            tcp:FireServer(2, false)
+        end)
+    end
+    Dash.active = false
+    Dash.cooldown = 0.6
+end
+
+addUpdater(function(dt)
+    if ProjectileAim.enabled and not ProjectileAim.hooked then
+        if not ProjectileAim.installTried then
+            ProjectileAim.installTried = true
+            local ok = installProjectileAim()
+            if not ok then
+                ProjectileAim.enabled = false
+                Window:Notify({
+                    title = "Silent aim de projetil",
+                    content = ProjectileAim.status .. ". Use o silent aim normal.",
+                    duration = 6,
+                })
+            end
+        end
+    end
+
+    if Dash.cooldown > 0 then Dash.cooldown = math.max(0, Dash.cooldown - (dt or 0)) end
+
+    if not Dash.enabled then
+        if Dash.active then dashStop() end
+        return
+    end
+
+    if Dash.active then
+        Dash.timer = Dash.timer + (dt or 0)
+        if Dash.timer > Dash.duration then
+            dashStop()
+            return
+        end
+        local dir = flatLook()
+        for _, name in ipairs({ "middle", "top", "bottom" }) do
+            local part = Game[name]
+            if part then
+                pcall(function() part.AssemblyLinearVelocity = dir * Dash.speed end)
+            end
+        end
+    elseif Dash.cooldown <= 0 and isMoving() then
+        dashStart()
+    end
+end)
+
+--=====================================================================
 -- 9.5 OBJETOS DO MUNDO — containers, totens, camas, armas caidas
 --=====================================================================
 -- A deteccao nao depende de saber o nome exato de cada caixa do jogo:
@@ -1391,7 +1688,8 @@ local Objects = {
 local PAT_CONTAINER = {
     "crate", "caixa", "cofre", "safe", "vault", "chest", "bau", "baú",
     "box", "container", "loot", "militar", "military", "papel", "cardboard",
-    "metal", "supply", "stash", "toolbox", "cargo",
+    "metal", "supply", "stash", "toolbox", "cargo", "crates", "cables",
+    "backpack", "duffel",
 }
 local PAT_TOTEM = { "totem" }
 local PAT_BED = { "bedroll", "bed", "cama", "sleep", "bag", "spawn", "tent", "barraca", "campfire", "fogueira", "respawn" }
@@ -1536,6 +1834,19 @@ local function inspectWorldItem(item, acc)
         local pos, ref = modelRef(item)
         if pos then acc[item] = { kind = "container", text = item.Name, pos = pos, part = ref } end
         return
+    end
+
+    -- caixa sem nome reconhecivel: o modelo tem filho Crates/Cables/Lid
+    if Objects.containers then
+        local okChild, crates = pcall(function()
+            return item:FindFirstChild("Crates") or item:FindFirstChild("Cables")
+                or item:FindFirstChild("Lid") or item:FindFirstChild("Loot")
+        end)
+        if okChild and crates then
+            local pos, ref = modelRef(item)
+            if pos then acc[item] = { kind = "container", text = item.Name, pos = pos, part = ref } end
+            return
+        end
     end
 
     local extra = extraPatterns()
@@ -2515,6 +2826,53 @@ TCombat:CreateToggle({
     end,
 })
 
+TCombat:CreateSection({ name = "Silent aim de projetil (hook)" })
+
+TCombat:CreateToggle({
+    name = "Silent aim de projetil",
+    description = "Hook no createProjectile do RangedWeaponClient com predicao (ProjectileSpeed/Drop). Precisa de getgc, debug e hookfunction.",
+    flag = "proj_silent",
+    value = false,
+    callback = function(v)
+        ProjectileAim.enabled = v
+        ProjectileAim.installTried = false
+        if v then
+            local ok = installProjectileAim()
+            if not ok then
+                ProjectileAim.enabled = false
+                Window:Notify({
+                    title = "Nao instalou",
+                    content = ProjectileAim.status .. ". Use o silent aim normal.",
+                    duration = 7,
+                })
+            else
+                Window:Notify({ title = "Silent aim de projetil", content = "Hook ativo no createProjectile.", duration = 4 })
+            end
+        end
+    end,
+})
+
+TCombat:CreateSlider({
+    name = "FOV do projetil",
+    description = "Raio em pixels a partir do centro da tela.",
+    flag = "proj_fov",
+    range = { 50, 1200 },
+    increment = 10,
+    value = 520,
+    callback = function(v) ProjectileAim.fov = v end,
+})
+
+TCombat:CreateDropdown({
+    name = "Parte do projetil",
+    flag = "proj_part",
+    options = { "Head", "Torso" },
+    currentOption = { "Head" },
+    multipleOptions = false,
+    callback = function(option)
+        ProjectileAim.partName = tostring(type(option) == "table" and option[1] or option)
+    end,
+})
+
 TCombat:CreateSection({ name = "Hitbox" })
 
 TCombat:CreateToggle({
@@ -3093,6 +3451,59 @@ TMove:CreateToggle({
     callback = function(v) Move.forceSprint = v end,
 })
 
+TMove:CreateSection({ name = "Dash slide (TCP 2/3)" })
+
+TMove:CreateToggle({
+    name = "Dash automatico",
+    description = "Manda TCP (3,true) + (2,true) e empurra o corpo na direcao da camera. Repete enquanto voce anda.",
+    flag = "dash_on",
+    value = false,
+    callback = function(v)
+        Dash.enabled = v
+        if not v and Dash.active then dashStop() end
+    end,
+})
+
+TMove:CreateSlider({
+    name = "Velocidade do dash",
+    flag = "dash_speed",
+    range = { 20, 90 },
+    increment = 1,
+    suffix = "sps",
+    value = 62,
+    callback = function(v) Dash.speed = v end,
+})
+
+TMove:CreateSlider({
+    name = "Duracao do dash",
+    flag = "dash_time",
+    range = { 0.2, 3 },
+    increment = 0.1,
+    suffix = "s",
+    value = 1.4,
+    callback = function(v) Dash.duration = v end,
+})
+
+TMove:CreateButton({
+    name = "Dash agora",
+    callback = function()
+        local ok = dashStart()
+        Window:Notify({
+            title = "Dash",
+            content = ok and "Slide enviado no TCP." or "Sem remote TCP disponivel.",
+            duration = 3,
+        })
+    end,
+})
+
+TMove:CreateButton({
+    name = "Parar dash",
+    callback = function()
+        dashStop()
+        Window:Notify({ title = "Dash", content = "Slide liberado.", duration = 3 })
+    end,
+})
+
 TMove:CreateSection({ name = "Camera e personagem" })
 
 TMove:CreateToggle({
@@ -3474,6 +3885,7 @@ TConfig:CreateButton({
         Log:add("plataforma: " .. (IS_MOBILE and "celular" or "pc"))
         Log:add("mira: " .. (Aim.centerLock and "fixa no centro" or "segue o dedo/mouse"))
         Log:add("objetos no mapa: " .. tostring(#Workspace:GetChildren()))
+        Log:add("silent aim de projetil: " .. tostring(ProjectileAim.status))
         Log:add("Highlight: " .. tostring(select(1, pcall(function() local h = Instance.new("Highlight"); h:Destroy() end)) and "ok" or "indisponivel"))
         Log:add("alvos vistos: " .. tostring(#getEntities(true)))
         Window:Notify({ title = "Diagnostico", content = "Veja a aba Config > Console.", duration = 4 })
@@ -3509,6 +3921,9 @@ local function liftoff()
 
     Esp.enabled = false
     Farm.enabled, Farm.killAura = false, false
+    ProjectileAim.enabled = false
+    Dash.enabled = false
+    if Dash.active then dashStop() end
     clearEsp()
     clearAllChams()
     clearAura()
@@ -3543,7 +3958,7 @@ getgenv = getgenv or function() return _G end
 local genv = getgenv()
 if type(genv) == "table" then
     genv.trident_unload = liftoff
-    genv.trident = { Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Window = Window }
+    genv.trident = { Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Catalog = Catalog, Farm = Farm, ProjectileAim = ProjectileAim, Dash = Dash, Window = Window }
 end
 
 --=====================================================================
