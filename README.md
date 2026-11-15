@@ -24,6 +24,20 @@ Este build depende apenas de:
 
 Tudo passa por `pcall` com fallback: quando um path do jogo muda, o script avisa no console em vez de estourar.
 
+## Build 2.2 — mineração de 86 repositórios
+
+Varredura com 10 consultas na API do GitHub (`trident survival`, `trident survival script`, `trident roblox cheat`, `swimhub trident`, `trident survival lua`, `aimbot`, `hack`, `gui`, `exploit`, `trident survival roblox`): **86 repositórios mapeados**, 22 com Lua legível, 44 arquivos baixados e analisados.
+
+- **Silent aim de projétil (novo, o mais forte).** Hook no `createProjectile` do `RangedWeaponClient`, achado por `getgc()` + `debug.getconstants(v)[1] == "ProjectileSpeed"`, exatamente como em `Mick-gordon/Trident-Survival-Silent-aim`. O alvo é corrigido antes do projétil nascer, com predição por `weaponInfo.ProjectileSpeed` / `ProjectileDrop` e velocidade do alvo. Se o executor não tiver `hookfunction`, avisa e cai no silent aim antigo.
+- **Dash slide por TCP.** `FireServer(3, true, Vector3.xAxis)` + `FireServer(2, true)` para entrar no slide, empurrão de `AssemblyLinearVelocity` na direção da câmera e `(3,false)`/`(2,false)` no fim — sequência extraída do `KumaoRoblox/TridentSurvival` (speedhack silencioso). Tem toggle, velocidade, duração, "Dash agora" e "Parar dash" (para nunca ficar preso no slide).
+- **Arma equipada pelo módulo do jogo.** `GetEquippedItem` via `getgc`, como no `Panda22MyGod/TridentSurvival`, com fallback no `Tool`; usada no rótulo do ESP.
+- **Containers com nome real.** `Metal`, `Metal2`, `Cardboard`, `Crate` e detecção por filho `Crates`/`Cables`/`Lid` (padrão do `Rostik22803/Ocel-hub-trident-survival`), além do `ProximityPrompt` que já existia.
+- **EntityMap** também usado pelo farm/kill aura, com `Classes.Player.EntityMap` como caminho alternativo.
+
+Ranking de densidade de feature entre os 86: `6segs/kira` (115), `mlk010173/trident-rayfield` (95), `Rostik22803/Ocel-hub-trident-survival` (93), `KumaoRoblox/TridentSurvival` (92), `Panda22MyGod/TridentSurvival` (80), `Mick-gordon/Trident-Survival-Silent-aim` (23).
+
+Sobre os ofuscados: `WaffleManTheGreat/DirtyFork`, `Zu0aX/Trident-Survival`, `cocacolahim/trident-survival` e `LemonProgramfile/TridentSurvival-me` estão compilados em VM (Luraph/PSU), sem source recuperável sem o deobfuscator específico. Do `Ocel-hub` foi possível ler a camada de proteção (o truque de `string.gsub` guardado em `return ({ string_replace = string.gsub, ... })`) e aproveitar as listas de material/container.
+
 ## Build 2.1 — correção do erro em jogo + fontes
 
 - **`attempt to modify a readonly table` corrigido.** O stack apontava a linha 53 do script: era o `math.clamp = ...`. No Luau a tabela `math` é readonly, então atribuir nela estoura. O `clamp` virou função local.
