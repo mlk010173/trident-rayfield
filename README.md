@@ -24,6 +24,21 @@ Este build depende apenas de:
 
 Tudo passa por `pcall` com fallback: quando um path do jogo muda, o script avisa no console em vez de estourar.
 
+## Build 2.0 — upgrade mobile e de mundo
+
+- **Mira fixa no centro.** No celular o `GetMouseLocation` devolve o último toque, e era isso que arrastava o círculo do FOV junto com o dedo (e fazia o aimbot escolher alvo pela posição errada). Agora FOV, seleção de alvo e crosshair usam o centro da tela por padrão (`Mira fixa no centro`, desligável em Combat).
+- **Chams arco-íris fluido.** Um `Highlight` por parte do corpo, com a matiz deslocada no tempo: as cores andam dentro do modelo em vez de o boneco inteiro trocar de cor. Tem velocidade, transparência, quantidade de partes (custo no celular), contorno e "sempre na frente".
+- **Aura no player local.** Partículas + brilho arco-íris no seu personagem, com taxa de partículas ajustável.
+- **Aba Objetos.** O ESP antigo só via players. Agora:
+  - **Containers** por `ProximityPrompt`/`ClickDetector`, ou seja, funciona sem saber o nome que o jogo deu para a caixa (militar, cofre, metal, papelão);
+  - **Totens**, **camas/caixa de spawn** do player e **armas no chão** (`Tool`);
+  - **Nomes extras** configuráveis por texto, para quando aparecer container novo;
+  - **Auto loot** dispara o prompt do container mais próximo, com raio e intervalo;
+  - varredura com orçamento de 2,5 ms por frame, então o mapa inteiro é indexado sem engasgar o celular.
+- **ESP de NPC separado do de player** (`GetPlayerFromCharacter`), cor própria, e o **nome da arma na mão** do alvo no rótulo.
+- **Distância corrigida.** `myPosition()` tenta `Game.middle`, depois as partes do personagem e por fim a câmera. Antes, sem `HumanoidRootPart`, tudo ficava em 0 m.
+- **Gamma falso / filtro do mundo.** `ColorCorrectionEffect` + `BloomEffect` + `SunRaysEffect` + `Atmosphere`, com sliders de brilho, contraste, saturação, tinta, neblina e pulso, mais presets `natural`, `neon`, `cinema`, `noite` e `vapor`. Tudo é destruído no unload.
+
 ## Abas e funções
 
 **Combat**
@@ -32,7 +47,9 @@ Tudo passa por `pcall` com fallback: quando um path do jogo muda, o script avisa
 - Hitbox expander com tamanho, transparência e colisão, restaurando o original ao desligar.
 
 **Visuals**
-- ESP de players com backend duplo (Drawing ou Highlight + Billboard), caixa, chams, nome, distância, vida e tracer.
+- ESP de players e de NPC com backend duplo (Drawing ou Highlight + Billboard), caixa, chams, nome, distância, vida, tracer e arma na mão.
+- Chams arco-íris fluido por parte, aura estética no player local.
+- Overlay de FOV e crosshair, presos no centro da tela.
 - Ore ESP (ferro, nitrato, pedra).
 - Círculo de FOV e crosshair (só onde existe `Drawing`).
 
@@ -59,7 +76,9 @@ Tudo passa por `pcall` com fallback: quando um path do jogo muda, o script avisa
 ## Testes feitos
 
 - Parse de sintaxe em Lua 5.1/5.2/5.3 (Luau é superset para o que é usado aqui).
-- Execução em ambiente Roblox simulado (mock com `Const.Ignore.LocalCharacter`, `LocalPlayer.TCP`, NPC, minério e veículo), ligando e desligando os 81 controles: 0 erros.
+- Execução em ambiente Roblox simulado (mock com `Const.Ignore.LocalCharacter`, `LocalPlayer.TCP`, NPC, minério, veículo, containers com prompt, totem, cama e arma no chão), ligando e desligando os **127 controles**: 0 erros.
+- Verificado nas etiquetas geradas pelo teste: `Bandit [WoodArrow]`, `Crate_Military 6m [Loot Caixa militar]`, `Cofre 8m`, `Totem 9m`, `SleepingBag 5m`, `AK47 7m`, com distância real e sem 0 m.
+- Gamma validado: preset `neon` aplica brilho 0.12 e saturação 0.55 no `ColorCorrectionEffect`, e o efeito é destruído ao desligar.
 - Silent aim validado: com alvo, o `GetCFrame` do jogo passa a apontar para o NPC e volta ao normal ao desligar.
 
 O que só o jogo confirma é qual hook o Trident aceita hoje. O console diz qual entrou em uso.
