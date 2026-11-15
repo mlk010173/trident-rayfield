@@ -24,6 +24,23 @@ Este build depende apenas de:
 
 Tudo passa por `pcall` com fallback: quando um path do jogo muda, o script avisa no console em vez de estourar.
 
+## Build 2.1 — correção do erro em jogo + fontes
+
+- **`attempt to modify a readonly table` corrigido.** O stack apontava a linha 53 do script: era o `math.clamp = ...`. No Luau a tabela `math` é readonly, então atribuir nela estoura. O `clamp` virou função local.
+- **Personagem local com o caminho do jogo.** O Trident usa `workspace.Ignore.LocalCharacter` (e em algumas builds `Const.Ignore.LocalCharacter`). O resolver agora tenta os dois, então `Middle`/`Top`/`Bottom` aparecem mesmo quando o path muda.
+- **Catálogo de entidades do jogo.** Lido de `ReplicatedStorage.Shared.entities`: `Player`, `Tree`, `Cactus`, `Iron`, `Nitrate`, `Stone`, `Totem`, cofres/caixas e a pasta de NPCs. O ESP de objetos passa a usar o nome exato do jogo em vez de adivinhar por padrão de texto. Tem toggle **Recursos** e botão **Recarregar catálogo**.
+- **Auto farm e kill aura por TCP.** `TCP:FireServer(10, "Swing")` + `(10, "Hit", id, pos, parte, Vector3)` no recurso/player/NPC mais próximo, com raio, intervalo e parte do hit. Depende do `EntityMap` do cliente (`getgc`/`debug.getupvalues`); quando o executor não expõe, a feature se desliga sozinha com aviso — o Trident tem detecção de tampering (`TamperingDetected`), então isso vem desligado por padrão.
+
+### Fontes públicas usadas
+
+| Repositório | O que trouxe |
+|---|---|
+| [ipso1337/tridenopenscr](https://github.com/ipso1337/tridenopenscr) | protocolo `TCP` real (`Swing`/`Hit`), caminho `workspace.Ignore.LocalCharacter`, tipos de farm (`Cactus`, `Tree`, `Nitrate`, `Stone`, `Iron`), kill aura e entity map |
+| [7PXS/ScriptArchive](https://github.com/7PXS/ScriptArchive) | `ReplicatedStorage.Shared.entities` (catálogo pago do swimhub trident), identificação de modelo por material/cor, arma por entidade, `ProjectileSpeed`/`ProjectileDrop`/`Recoil` |
+| [6segs/kira](https://github.com/6segs/kira) | módulo de ESP legível: caixas, skeleton, chams, barras e ordenação |
+
+Descartados: `WaffleManTheGreat/DirtyFork` e `Zu0aX/Trident-Survival` estão compilados em VM (não dá para extrair nada sem deobfuscator).
+
 ## Build 2.0 — upgrade mobile e de mundo
 
 - **Mira fixa no centro.** No celular o `GetMouseLocation` devolve o último toque, e era isso que arrastava o círculo do FOV junto com o dedo (e fazia o aimbot escolher alvo pela posição errada). Agora FOV, seleção de alvo e crosshair usam o centro da tela por padrão (`Mira fixa no centro`, desligável em Combat).
