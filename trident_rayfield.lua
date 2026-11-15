@@ -16,6 +16,23 @@
       * ESP com dois backends: Drawing (PC/executor completo) e Highlight +
         BillboardGui (Arceus X / mobile, sem Drawing).
 
+    Build 2.1 (correcao do erro em jogo + fontes novas):
+      * FIX do erro "attempt to modify a readonly table": era o
+        math.clamp = ... no topo. math e readonly no Luau, entao o clamp
+        virou funcao local (era a linha 53 do stack do Developer Console).
+      * Personagem local: agora tenta workspace.Ignore.LocalCharacter
+        (caminho do Trident atual) e Const.Ignore.LocalCharacter.
+      * Catalogo lido de ReplicatedStorage.Shared.entities: tipos reais
+        do jogo (Tree, Cactus, Iron, Nitrate, Stone, Totem, cofres,
+        NPCs), sem adivinhar nome de caixa.
+      * Auto farm e kill aura por TCP (Swing + Hit) com EntityMap,
+        com aviso de tampering.
+
+    Fontes publicas usadas:
+      github.com/ipso1337/tridenopenscr  -> protocolo TCP Swing/Hit
+      github.com/7PXS/ScriptArchive      -> Shared.entities (swimhub pago)
+      github.com/6segs/kira              -> ESP (caixas, skeleton, chams)
+
     Build 2.0 (upgrade mobile + mundo):
       * Mira fixa no centro: no celular o FOV e a escolha de alvo nao
         seguem mais o dedo (GetMouseLocation devolve o ultimo toque).
@@ -49,8 +66,9 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
 local Camera = Workspace.CurrentCamera
--- math.clamp e Luau; garante que existe no executor
-math.clamp = math.clamp or function(v, lo, hi)
+-- math e readonly no Luau: atribuir em math.clamp estoura
+-- "attempt to modify a readonly table". Entao o clamp e local.
+local function clamp(v, lo, hi)
     if v < lo then return lo end
     if v > hi then return hi end
     return v
@@ -193,7 +211,7 @@ Window:Notify({
 pcall(function()
     Window:Popup({
         title = "trident • rayfield gen2",
-        subtitle = "build 2.0",
+        subtitle = "build 2.1",
         boxes = {
             { title = "Silent aim", description = "Hook no modulo de camera do jogo ou em Camera.CFrame, com predicao, FOV e checagem de visao." },
             { title = "ESP completo", description = "Usa Drawing quando o executor tem; senao cai para Highlight + Billboard." },
@@ -227,10 +245,25 @@ function Game.refresh()
     local cam = Workspace.CurrentCamera
     if cam and cam ~= Camera then Camera = cam end
 
-    -- personagem local: caminho novo (workspace.Const.Ignore.LocalCharacter)
-    local const = Workspace:FindFirstChild("Const")
-    local ignore = const and const:FindFirstChild("Ignore")
-    local localChar = ignore and ignore:FindFirstChild("LocalCharacter")
+    -- personagem local. O Trident usa workspace.Ignore.LocalCharacter; em
+    -- algumas builds o Ignore fica dentro de Const, entao tenta os dois.
+    local function findLocalChar()
+        local candidates = {}
+        local const = Workspace:FindFirstChild("Const")
+        if const then
+            local ig = const:FindFirstChild("Ignore")
+            if ig then candidates[#candidates + 1] = ig end
+        end
+        local ig2 = Workspace:FindFirstChild("Ignore")
+        if ig2 then candidates[#candidates + 1] = ig2 end
+        for i = 1, #candidates do
+            local lc = candidates[i]:FindFirstChild("LocalCharacter")
+            if lc then return lc end
+        end
+        return nil
+    end
+
+    local localChar = findLocalChar()
 
     if localChar then
         Game.root = localChar
@@ -676,7 +709,7 @@ addUpdater(function()
         -- aimbot de camera (funciona no celular, sem mouse)
         local camPos = Camera.CFrame.Position
         local goal = CFrame.lookAt(camPos, pos)
-        local alpha = math.clamp(1 / math.max(Aim.smooth, 1), 0.02, 1)
+        local alpha = clamp(1 / math.max(Aim.smooth, 1), 0.02, 1)
         Camera.CFrame = Camera.CFrame:Lerp(goal, alpha)
     end
 end)
@@ -1103,6 +1136,235 @@ addUpdater(function()
 end)
 
 --=====================================================================
+-- 9.8 CATALOGO DE ENTIDADES DO JOGO + AUTO FARM / KILL AURA
+--=====================================================================
+-- O Trident guarda os tipos de entidade em Shared.entities
+-- (ReplicatedStorage.Shared.entities.Tree, .Iron, .Nitrate, .Stone,
+-- .Cactus, .NPC.<tipo>, .Player ...). Lendo isso o script deixa de
+-- adivinhar nome de caixa/minerio: usa exatamente o nome que o jogo usa.
+-- Referencia: scripts publicos do proprio Trident.
+
+local Catalog = {
+    loaded = false,
+    kinds = {},
+    list = {},
+    npcs = {},
+    resources = {},
+    objects = {},
+}
+
+local RESOURCE_NAMES = { "Tree", "Cactus", "Iron", "Nitrate", "Stone", "Rock", "Ore" }
+
+local function isResourceName(name)
+    local low = string.lower(tostring(name or ""))
+    for i = 1, #RESOURCE_NAMES do
+        if string.find(low, string.lower(RESOURCE_NAMES[i]), 1, true) then return true end
+    end
+    return false
+end
+
+local function loadCatalog()
+    Catalog.kinds = {}
+    Catalog.list = {}
+    Catalog.npcs = {}
+    Catalog.resources = {}
+    Catalog.objects = {}
+
+    local shared = ReplicatedStorage:FindFirstChild("Shared")
+    local entities = shared and shared:FindFirstChild("entities")
+    if not entities then
+        Catalog.loaded = false
+        return false
+    end
+
+    local function register(name, kind)
+        if type(name) ~= "string" or name == "" then return end
+        if Catalog.kinds[name] then return end
+        Catalog.kinds[name] = kind
+        table.insert(Catalog.list, name)
+        if kind == "resource" then
+            Catalog.resources[name] = true
+        elseif kind == "object" then
+            Catalog.objects[name] = true
+        elseif kind == "npc" then
+            Catalog.npcs[name] = true
+        end
+    end
+
+    local ok = pcall(function()
+        for _, child in ipairs(entities:GetChildren()) do
+            local name = child.Name
+            local low = string.lower(name)
+            if low == "npc" or low == "npcs" then
+                -- pasta com um filho por tipo de NPC
+                for _, npc in ipairs(child:GetChildren()) do
+                    register(npc.Name, "npc")
+                end
+            elseif low == "player" then
+                register(name, "player")
+            elseif isResourceName(name) then
+                register(name, "resource")
+            else
+                -- sem pasta de NPC: o que tem Humanoid no Model e NPC
+                local kind = "object"
+                local model = child:FindFirstChild("Model")
+                if model then
+                    local okHum, hum = pcall(function() return model:FindFirstChildOfClass("Humanoid") end)
+                    if okHum and hum then kind = "npc" end
+                end
+                register(name, kind)
+            end
+        end
+    end)
+
+    Catalog.loaded = ok and #Catalog.list > 0
+    if Catalog.loaded then
+        Log:add("catalogo do jogo: " .. #Catalog.list .. " tipos (" .. table.concat(Catalog.list, ", ", 1, math.min(#Catalog.list, 8)) .. ")")
+    end
+    return Catalog.loaded
+end
+
+local function catalogKindOf(name)
+    if not Catalog.loaded then return nil end
+    return Catalog.kinds[name]
+end
+
+-- farm / kill aura -----------------------------------------------------
+-- Precisa do EntityMap do cliente (id de cada entidade). Ele so existe
+-- via debug.getupvalues/getgc, entao a feature se desliga sozinha quando
+-- o executor nao permite. Referencia: tridenopenscr (PlayerBody.lua).
+local Farm = {
+    enabled = false,
+    killAura = false,
+    distance = 28,
+    delay = 0.95,
+    fastDelay = 0.05,
+    hitPart = "Head",
+    types = {},
+    map = nil,
+    mapTried = false,
+    warned = false,
+    lastFire = 0,
+    hits = 0,
+}
+
+do
+    for _, name in ipairs({ "Tree", "Cactus", "Iron", "Nitrate", "Stone" }) do
+        Farm.types[name] = true
+    end
+end
+
+local function resolveEntityMap()
+    if Farm.map then return Farm.map end
+    if Farm.mapTried then return nil end
+    Farm.mapTried = true
+    if type(getgc) ~= "function" then return nil end
+    if type(debug) ~= "table" or type(debug.getupvalues) ~= "function" then return nil end
+
+    local ok, map = pcall(function()
+        for _, value in pairs(getgc(true)) do
+            if type(value) == "table" then
+                local candidate = rawget(value, "EntityMap")
+                if type(candidate) == "table" and next(candidate) ~= nil then
+                    return candidate
+                end
+            elseif type(value) == "function" then
+                local ups = debug.getupvalues(value)
+                if type(ups) == "table" then
+                    for _, up in pairs(ups) do
+                        if type(up) == "table" then
+                            local candidate = rawget(up, "EntityMap")
+                            if type(candidate) == "table" and next(candidate) ~= nil then
+                                return candidate
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return nil
+    end)
+
+    if ok and type(map) == "table" then
+        Farm.map = map
+        Log:add("EntityMap encontrado (" .. tostring(next(map) ~= nil and "ok" or "vazio") .. ")")
+        return map
+    end
+    return nil
+end
+
+local function fireHit(id, position, hitType, part)
+    local tcp = Game.tcp
+    if not tcp then return false end
+    pcall(function() tcp:FireServer(10, "Swing") end)
+    local ok = pcall(function()
+        tcp:FireServer(10, "Hit", id, position, part or Farm.hitPart, hitType or "Part", Vector3.new(0, 0, 0))
+    end)
+    if ok then Farm.hits = Farm.hits + 1 end
+    return ok
+end
+
+local farmTimer = 0
+
+local function updateFarm(dt)
+    if not (Farm.enabled or Farm.killAura) then
+        farmTimer = 0
+        return
+    end
+    farmTimer = farmTimer + (dt or 0)
+    local delay = Farm.enabled and Farm.delay or 0.5
+    if farmTimer < delay then return end
+
+    local myPos = myPosition()
+    if not myPos then return end
+
+    local map = resolveEntityMap()
+    if not map then
+        if not Farm.warned then
+            Farm.warned = true
+            Farm.enabled, Farm.killAura = false, true
+            Farm.killAura = false
+            Log:add("farm desligado: este executor nao expoe getgc/debug.getupvalues")
+            Window:Notify({
+                title = "Auto farm indisponivel",
+                content = "O executor nao expoe getgc/debug.getupvalues, que o Trident exige para o Hit funcionar.",
+                duration = 7,
+            })
+        end
+        return
+    end
+
+    local bestId, bestPos, bestType, bestDist
+    for id, ent in pairs(map) do
+        if type(ent) == "table" then
+            local etype = ent.type
+            local epos = ent.pos
+            if type(etype) == "string" and typeof(epos) == "Vector3" then
+                local isResourceType = Farm.types[etype] or isResourceName(etype)
+                local want = (Farm.killAura and (etype == "Player" or Catalog.npcs[etype])) or (Farm.enabled and isResourceType)
+                if want then
+                    local okD, dist = pcall(function() return (epos - myPos).Magnitude end)
+                    if okD and dist and dist <= Farm.distance and (bestDist == nil or dist < bestDist) then
+                        bestId, bestPos, bestType, bestDist = id, epos, etype, dist
+                    end
+                end
+            end
+        end
+    end
+
+    if bestId then
+        farmTimer = 0
+        local hitType = (bestType == "Tree") and "default" or "Part"
+        fireHit(bestId, bestPos, hitType)
+    end
+end
+
+addUpdater(updateFarm)
+
+-- carrega o catalogo assim que o script sobe
+loadCatalog()
+
+--=====================================================================
 -- 9.5 OBJETOS DO MUNDO — containers, totens, camas, armas caidas
 --=====================================================================
 -- A deteccao nao depende de saber o nome exato de cada caixa do jogo:
@@ -1116,6 +1378,7 @@ local Objects = {
     totems = false,
     beds = false,
     weapons = false,
+    resources = false,
     autoLoot = false,
     lootRadius = 22,
     lootDelay = 0.45,
@@ -1139,6 +1402,7 @@ local KIND_COLOR = {
     totem = Color3.fromRGB(190, 130, 255),
     bed = Color3.fromRGB(110, 235, 150),
     weapon = Color3.fromRGB(255, 140, 90),
+    resource = Color3.fromRGB(150, 235, 210),
     extra = Color3.fromRGB(120, 230, 255),
 }
 
@@ -1229,6 +1493,14 @@ local function inspectWorldItem(item, acc)
     local isFolder = item:IsA("Folder")
     if not (isModel or isFolder) then return end
 
+    -- catalogo do jogo (Shared.entities): nome exato, sem adivinhacao
+    local catalogKind = catalogKindOf(item.Name)
+    if catalogKind == "resource" and Objects.resources then
+        local pos, ref = modelRef(item)
+        if pos then acc[item] = { kind = "resource", text = item.Name, pos = pos, part = ref } end
+        return
+    end
+
     if Objects.containers then
         local prompt = findPrompt(item)
         if prompt then
@@ -1279,7 +1551,7 @@ local worldLabels = {}
 local worldLabelTimer = 0
 
 local function anyObjectEspEnabled()
-    return Objects.containers or Objects.totems or Objects.beds or Objects.weapons
+    return Objects.containers or Objects.totems or Objects.beds or Objects.weapons or Objects.resources
 end
 
 -- varredura com orcamento de tempo por frame: nunca engasga o celular
@@ -1745,9 +2017,9 @@ local function updateWorldFx(dt)
     pcall(function()
         local cc = fxObjects.cc
         if cc then
-            cc.Brightness = math.clamp(WorldFx.brightness + pulse, -1, 1)
-            cc.Contrast = math.clamp(WorldFx.contrast + pulse * 0.5, -1, 1)
-            cc.Saturation = math.clamp(WorldFx.saturation + pulse, -1, 1)
+            cc.Brightness = clamp(WorldFx.brightness + pulse, -1, 1)
+            cc.Contrast = clamp(WorldFx.contrast + pulse * 0.5, -1, 1)
+            cc.Saturation = clamp(WorldFx.saturation + pulse, -1, 1)
             cc.TintColor = WorldFx.tint
         end
         local bloom = fxObjects.bloom
@@ -1903,9 +2175,9 @@ addUpdater(function(dt)
     if dir.Magnitude > 0 then dir = dir.Unit end
 
     if dir.Magnitude > 0 then
-        Move.carFlyBuild = math.clamp(Move.carFlyBuild + dt * Move.carFlyAccel, 0, Move.carFlySpeed)
+        Move.carFlyBuild = clamp(Move.carFlyBuild + dt * Move.carFlyAccel, 0, Move.carFlySpeed)
     else
-        Move.carFlyBuild = math.clamp(Move.carFlyBuild - dt * 150, 0, Move.carFlySpeed)
+        Move.carFlyBuild = clamp(Move.carFlyBuild - dt * 150, 0, Move.carFlySpeed)
     end
 
     for _, part in pairs(car:GetChildren()) do
@@ -2992,6 +3264,88 @@ TObj:CreateButton({
     end,
 })
 
+TObj:CreateSection({ name = "Catalogo do jogo (Shared.entities)" })
+
+TObj:CreateToggle({
+    name = "Recursos",
+    description = "Tree, Cactus, Iron, Nitrate, Stone: nomes lidos do proprio jogo.",
+    flag = "obj_resources",
+    value = false,
+    callback = function(v) Objects.resources = v end,
+})
+
+TObj:CreateButton({
+    name = "Recarregar catalogo",
+    callback = function()
+        local ok = loadCatalog()
+        Window:Notify({
+            title = "Catalogo",
+            content = ok and (tostring(#Catalog.list) .. " tipos encontrados: " .. table.concat(Catalog.list, ", ", 1, math.min(#Catalog.list, 10)))
+                or "ReplicatedStorage.Shared.entities nao encontrado.",
+            duration = 7,
+        })
+    end,
+})
+
+TObj:CreateSection({ name = "Auto farm / kill aura (TCP)" })
+
+TObj:CreateToggle({
+    name = "Auto farm (recursos)",
+    description = "Dispara Swing + Hit no recurso mais proximo. Precisa de getgc/debug.getupvalues no executor.",
+    flag = "farm_on",
+    value = false,
+    callback = function(v)
+        Farm.enabled = v
+        if v then
+            Farm.warned = false
+            Window:Notify({
+                title = "Auto farm ligado",
+                content = "O Trident tem deteccao de tampering: use em conta secundaria e por sua conta.",
+                duration = 6,
+            })
+        end
+    end,
+})
+
+TObj:CreateToggle({
+    name = "Kill aura (players e NPCs)",
+    description = "Manda Hit no player/NPC dentro do raio usando o EntityMap do cliente.",
+    flag = "farm_killaura",
+    value = false,
+    callback = function(v) Farm.killAura = v; if v then Farm.warned = false end end,
+})
+
+TObj:CreateSlider({
+    name = "Raio do farm",
+    flag = "farm_distance",
+    range = { 5, 120 },
+    increment = 1,
+    suffix = "m",
+    value = 28,
+    callback = function(v) Farm.distance = v end,
+})
+
+TObj:CreateSlider({
+    name = "Intervalo do swing",
+    flag = "farm_delay",
+    range = { 0.05, 1.5 },
+    increment = 0.05,
+    suffix = "s",
+    value = 0.95,
+    callback = function(v) Farm.delay = v end,
+})
+
+TObj:CreateDropdown({
+    name = "Parte do Hit (kill aura)",
+    flag = "farm_hitpart",
+    options = { "Head", "Torso" },
+    currentOption = { "Head" },
+    multipleOptions = false,
+    callback = function(option)
+        Farm.hitPart = tostring(type(option) == "table" and option[1] or option)
+    end,
+})
+
 TObj:CreateSection({ name = "Auto loot" })
 
 TObj:CreateToggle({
@@ -3154,6 +3508,7 @@ local function liftoff()
     hitboxRestore()
 
     Esp.enabled = false
+    Farm.enabled, Farm.killAura = false, false
     clearEsp()
     clearAllChams()
     clearAura()
