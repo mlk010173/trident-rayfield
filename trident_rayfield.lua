@@ -16,8 +16,25 @@
       * ESP com dois backends: Drawing (PC/executor completo) e Highlight +
         BillboardGui (Arceus X / mobile, sem Drawing).
 
+    Build 2.0 (upgrade mobile + mundo):
+      * Mira fixa no centro: no celular o FOV e a escolha de alvo nao
+        seguem mais o dedo (GetMouseLocation devolve o ultimo toque).
+      * Chams arco-iris fluido: um Highlight por parte do modelo, com
+        matiz deslocada no tempo (as cores andam dentro do corpo).
+      * Aura estetica no player local (particulas + brilho arco-iris).
+      * Aba Objetos: containers (por ProximityPrompt/ClickDetector, sem
+        depender do nome), totens, camas/spawn do player, armas no chao,
+        auto loot e nomes extras configuraveis.
+      * ESP de NPC separado do de player e nome da arma na mao do alvo.
+      * Distancia corrigida: myPosition() tenta Game.middle, partes do
+        personagem e por fim a camera (antes ficava 0 quando faltava o
+        HumanoidRootPart).
+      * Gamma falso / filtro do mundo: ColorCorrection + Bloom + SunRays
+        + Atmosfera com presets (natural, neon, cinema, noite, vapor) e
+        pulso suave.
+
     Carregar:
-      loadstring(game:HttpGet("SEU_LINK_RAW/trident_rayfield.lua"))()
+      loadstring(game:HttpGet("https://raw.githubusercontent.com/mlk010173/trident-rayfield/main/trident_rayfield.lua"))()
 =====================================================================]]
 
 --=====================================================================
@@ -32,6 +49,13 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
 local Camera = Workspace.CurrentCamera
+-- math.clamp e Luau; garante que existe no executor
+math.clamp = math.clamp or function(v, lo, hi)
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
 local IS_MOBILE = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 --=====================================================================
@@ -147,6 +171,7 @@ local TCombat = Window:CreateTab({ name = "Combat", icon = 93364949241311 })
 local TVisual = Window:CreateTab({ name = "Visuals", icon = 88090973560965 })
 local TWorld = Window:CreateTab({ name = "World", icon = 89258981739287 })
 local TMove = Window:CreateTab({ name = "Movement", icon = 87435173103629 })
+local TObj = Window:CreateTab({ name = "Objetos" })
 local TConfig = Window:CreateTab({ name = "Config", icon = 125823673784681 })
 
 local Console = TConfig:CreateConsole({
@@ -168,7 +193,7 @@ Window:Notify({
 pcall(function()
     Window:Popup({
         title = "trident • rayfield gen2",
-        subtitle = "build 1.0",
+        subtitle = "build 2.0",
         boxes = {
             { title = "Silent aim", description = "Hook no modulo de camera do jogo ou em Camera.CFrame, com predicao, FOV e checagem de visao." },
             { title = "ESP completo", description = "Usa Drawing quando o executor tem; senao cai para Highlight + Billboard." },
@@ -370,19 +395,31 @@ local function collectEntities()
     for _, v in pairs(Workspace:GetChildren()) do
         if v ~= Game.root and v ~= myChar and v:IsA("Model") then
             local head = v:FindFirstChild("Head")
-            local torso = v:FindFirstChild("Torso") or v:FindFirstChild("LowerTorso")
+            local torso = v:FindFirstChild("Torso") or v:FindFirstChild("UpperTorso") or v:FindFirstChild("LowerTorso")
             local hum = v:FindFirstChildOfClass("Humanoid") or v:FindFirstChild("Humanoid")
-            if head and torso and hum then
-                local alive = true
-                local ok, hp = pcall(function() return hum.Health end)
-                if ok and typeof(hp) == "number" then alive = hp > 0 end
-                if alive then
+            if head and hum then
+                local hp, maxHp = 100, 100
+                pcall(function() hp = hum.Health; maxHp = hum.MaxHealth end)
+                if not hp or hp > 0 then
+                    -- GetPlayerFromCharacter e a unica forma confiavel de
+                    -- separar player de NPC (nome do modelo engana)
+                    local plr = nil
+                    pcall(function() plr = Players:GetPlayerFromCharacter(v) end)
+                    local weapon = nil
+                    pcall(function()
+                        local tool = v:FindFirstChildOfClass("Tool")
+                        if tool then weapon = tool.Name end
+                    end)
+                    local isPlayer = plr ~= nil or Players:FindFirstChild(v.Name) ~= nil or v.Name == "Player"
                     table.insert(out, {
                         model = v,
                         head = head,
                         torso = torso,
                         humanoid = hum,
-                        isPlayer = (Players:FindFirstChild(v.Name) ~= nil) or v.Name == "Player",
+                        hp = hp,
+                        maxHp = maxHp,
+                        weapon = weapon,
+                        isPlayer = isPlayer,
                     })
                 end
             end
@@ -426,6 +463,27 @@ local function isVisible(part)
     return true
 end
 
+-- posicao do jogador local com varios fallbacks (o Trident nao usa
+-- HumanoidRootPart; Game.middle e o caminho principal, camera e o ultimo)
+local function myPosition()
+    local middle = partPos(Game.middle)
+    if middle then return middle end
+    local char = LocalPlayer.Character
+    if char then
+        local names = { "HumanoidRootPart", "UpperTorso", "Torso", "Middle", "Head" }
+        for i = 1, #names do
+            local part = char:FindFirstChild(names[i])
+            if part then
+                local pos = partPos(part)
+                if pos then return pos end
+            end
+        end
+    end
+    local ok, camPos = pcall(function() return Camera.CFrame.Position end)
+    if ok and typeof(camPos) == "Vector3" then return camPos end
+    return nil
+end
+
 --=====================================================================
 -- 7. AIMBOT + SILENT AIM
 --=====================================================================
@@ -442,6 +500,9 @@ local Aim = {
     visibleOnly = false,
     ignoreSleepers = true,
     targetNpc = true,
+    -- no celular a mira fica no centro da tela; sem isso o FOV e o alvo
+    -- seguem o dedo e o aimbot mira na direcao errada
+    centerLock = IS_MOBILE,
 }
 
 local Silent = {
@@ -450,10 +511,22 @@ local Silent = {
     activePos = nil,
 }
 
+local function viewportCenter()
+    local ok, size = pcall(function() return Camera.ViewportSize end)
+    if ok and typeof(size) == "Vector2" then
+        return Vector2.new(size.X / 2, size.Y / 2)
+    end
+    return Vector2.new(640, 360)
+end
+
+-- Origem da mira: centro da tela (celular) ou posicao do mouse/toque.
+-- GetMouseLocation no celular devolve o ultimo toque, e era isso que
+-- arrastava o circulo do FOV junto com o dedo.
 local function cursorPoint()
+    if Aim.centerLock then return viewportCenter() end
     local ok, loc = pcall(function() return UIS:GetMouseLocation() end)
     if ok and typeof(loc) == "Vector2" then return loc end
-    return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    return viewportCenter()
 end
 
 local function projectPoint(worldPos)
@@ -672,6 +745,9 @@ end
 
 local Esp = {
     enabled = false,
+    players = true,
+    npc = true,
+    weapon = true,
     box = true,
     name = true,
     distance = true,
@@ -681,6 +757,7 @@ local Esp = {
     chams = false,
     maxDistance = 600,
     color = Color3.fromRGB(96, 205, 255),
+    npcColor = Color3.fromRGB(255, 120, 120),
     visibleOnly = false,
     ignoreSleepers = false,
 }
@@ -788,17 +865,27 @@ end
 -- update -------------------------------------------------------------
 local function updateEsp()
     local alive = {}
-    local myPos = partPos(Game.middle)
+    local myPos = myPosition()
 
     for _, ent in pairs(getEntities()) do
-        local pos = partPos(ent.head)
-        local dist = (pos and myPos) and (pos - myPos).Magnitude or 0
+        local pos = partPos(ent.head) or (ent.torso and partPos(ent.torso))
+        local dist = nil
+        if pos and myPos then dist = (pos - myPos).Magnitude end
         local skip = false
 
         if not pos then skip = true end
-        if not skip and dist > Esp.maxDistance then skip = true end
+        if not skip and dist and dist > Esp.maxDistance then skip = true end
+        if not skip and ent.isPlayer and not Esp.players then skip = true end
+        if not skip and (not ent.isPlayer) and not Esp.npc then skip = true end
         if not skip and Esp.ignoreSleepers and isSleeping(ent.model) then skip = true end
         if not skip and Esp.visibleOnly and not isVisible(ent.head) then skip = true end
+
+        local entColor = ent.isPlayer and Esp.color or Esp.npcColor
+        local distTxt = dist and string.format("%dm", math.floor(dist)) or "?"
+        local nameTxt = ent.model.Name
+        if Esp.weapon and ent.weapon and ent.weapon ~= "" then
+            nameTxt = nameTxt .. "  [" .. tostring(ent.weapon) .. "]"
+        end
 
         if not skip then
             local key = ent.model
@@ -819,18 +906,18 @@ local function updateEsp()
                     obj.box.Size = size
                     obj.fill.Position = tl
                     obj.fill.Size = size
-                    obj.box.Color = Esp.color
-                    obj.fill.Color = Esp.color
+                    obj.box.Color = entColor
+                    obj.fill.Color = entColor
 
                     local bottom = tl + Vector2.new(0, size.Y)
 
                     obj.name.Visible = Esp.name
-                    obj.name.Text = ent.model.Name
+                    obj.name.Text = nameTxt
                     obj.name.Position = Vector2.new(tl.X + size.X / 2, tl.Y - 16)
-                    obj.name.Color = Esp.color
+                    obj.name.Color = entColor
 
                     obj.dist.Visible = Esp.distance
-                    obj.dist.Text = string.format("%d m", math.floor(dist))
+                    obj.dist.Text = distTxt
                     obj.dist.Position = Vector2.new(tl.X + size.X / 2, bottom.Y + 2)
 
                     obj.health.Visible = Esp.health
@@ -842,7 +929,7 @@ local function updateEsp()
                     obj.tracer.Visible = Esp.tracer
                     obj.tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                     obj.tracer.To = Vector2.new(tl.X + size.X / 2, bottom.Y)
-                    obj.tracer.Color = Esp.color
+                    obj.tracer.Color = entColor
                 else
                     for _, o in pairs(obj) do pcall(function() o.Visible = false end) end
                 end
@@ -852,19 +939,19 @@ local function updateEsp()
                     espObjects[key] = obj
                 end
                 pcall(function()
-                    obj.highlight.FillColor = Esp.color
-                    obj.highlight.OutlineColor = Esp.color
+                    obj.highlight.FillColor = entColor
+                    obj.highlight.OutlineColor = entColor
                     obj.highlight.Enabled = Esp.chams or Esp.box
                     local txt = {}
-                    if Esp.name then table.insert(txt, ent.model.Name) end
-                    if Esp.distance then table.insert(txt, string.format("%dm", math.floor(dist))) end
+                    if Esp.name then table.insert(txt, nameTxt) end
+                    if Esp.distance then table.insert(txt, distTxt) end
                     if Esp.health then
                         local hp = 100
                         pcall(function() hp = math.floor((ent.humanoid.Health / math.max(ent.humanoid.MaxHealth, 1)) * 100) end)
                         table.insert(txt, hp .. "%")
                     end
                     obj.label.Text = table.concat(txt, "  ")
-                    obj.label.TextColor3 = Esp.color
+                    obj.label.TextColor3 = entColor
                 end)
             end
         end
@@ -1013,6 +1100,677 @@ addUpdater(function()
             oreObjects[model] = nil
         end
     end
+end)
+
+--=====================================================================
+-- 9.5 OBJETOS DO MUNDO — containers, totens, camas, armas caidas
+--=====================================================================
+-- A deteccao nao depende de saber o nome exato de cada caixa do jogo:
+-- qualquer Model com ProximityPrompt / ClickDetector dentro vira alvo,
+-- e os nomes conhecidos (militar, cofre, metal, papelao, totem, cama)
+-- entram como padrao extra. Assim o ESP continua funcionando depois de
+-- update do Trident, sem eu precisar adivinhar o novo nome da caixa.
+
+local Objects = {
+    containers = false,
+    totems = false,
+    beds = false,
+    weapons = false,
+    autoLoot = false,
+    lootRadius = 22,
+    lootDelay = 0.45,
+    maxDistance = 350,
+    maxLabels = 55,
+    showAction = true,
+    extraNames = "",
+}
+
+local PAT_CONTAINER = {
+    "crate", "caixa", "cofre", "safe", "vault", "chest", "bau", "baú",
+    "box", "container", "loot", "militar", "military", "papel", "cardboard",
+    "metal", "supply", "stash", "toolbox", "cargo",
+}
+local PAT_TOTEM = { "totem" }
+local PAT_BED = { "bedroll", "bed", "cama", "sleep", "bag", "spawn", "tent", "barraca", "campfire", "fogueira", "respawn" }
+local PAT_WEAPON = { "weapon", "arma", "gun", "rifle", "pistol", "shotgun", "knife", "faca", "bow", "arco", "ammo", "bala", "mag" }
+
+local KIND_COLOR = {
+    container = Color3.fromRGB(255, 205, 80),
+    totem = Color3.fromRGB(190, 130, 255),
+    bed = Color3.fromRGB(110, 235, 150),
+    weapon = Color3.fromRGB(255, 140, 90),
+    extra = Color3.fromRGB(120, 230, 255),
+}
+
+local function lowerStr(s)
+    return string.lower(tostring(s or ""))
+end
+
+local function matchesAny(name, patterns)
+    local low = lowerStr(name)
+    if low == "" then return false end
+    for i = 1, #patterns do
+        if string.find(low, patterns[i], 1, true) then return true end
+    end
+    return false
+end
+
+local function extraPatterns()
+    local out = {}
+    local raw = tostring(Objects.extraNames or "")
+    for piece in string.gmatch(raw, "[^,;]+") do
+        local t = lowerStr(piece):gsub("^%s+", ""):gsub("%s+$", "")
+        if #t >= 2 then table.insert(out, t) end
+    end
+    return out
+end
+
+-- posicao e parte de referencia (a parte serve de Adornee do BillboardGui)
+local function modelRef(model)
+    local ok, prim = pcall(function() return model.PrimaryPart end)
+    if ok and prim then
+        local p = partPos(prim)
+        if p then return p, prim end
+    end
+    local ok2, kids = pcall(function() return model:GetChildren() end)
+    if ok2 and kids then
+        for _, d in ipairs(kids) do
+            if d:IsA("BasePart") then
+                local p = partPos(d)
+                if p then return p, d end
+            end
+        end
+        local ok3, desc = pcall(function() return model:GetDescendants() end)
+        if ok3 and desc then
+            for _, d in ipairs(desc) do
+                if d:IsA("BasePart") then
+                    local p = partPos(d)
+                    if p then return p, d end
+                end
+            end
+        end
+    end
+    if model:IsA("BasePart") then
+        local p = partPos(model)
+        if p then return p, model end
+    end
+    return nil, nil
+end
+
+local function findPrompt(item)
+    local ok, p = pcall(function()
+        return item:FindFirstChildOfClass("ProximityPrompt") or item:FindFirstChildOfClass("ClickDetector")
+    end)
+    if ok and p then return p end
+    local ok2, desc = pcall(function() return item:GetDescendants() end)
+    if ok2 and desc then
+        for _, d in ipairs(desc) do
+            local okA, hit = pcall(function()
+                return d:IsA("ProximityPrompt") or d:IsA("ClickDetector")
+            end)
+            if okA and hit then return d end
+        end
+    end
+    return nil
+end
+
+local function inspectWorldItem(item, acc)
+    if not item or not item.Parent then return end
+
+    if Objects.weapons and item:IsA("Tool") then
+        local pos, ref = modelRef(item)
+        if pos then
+            acc[item] = { kind = "weapon", text = item.Name, pos = pos, part = ref }
+        end
+        return
+    end
+
+    local isModel = item:IsA("Model")
+    local isFolder = item:IsA("Folder")
+    if not (isModel or isFolder) then return end
+
+    if Objects.containers then
+        local prompt = findPrompt(item)
+        if prompt then
+            local action = ""
+            pcall(function()
+                action = tostring(prompt.ActionText or "")
+                local objectText = tostring(prompt.ObjectText or "")
+                if objectText ~= "" then
+                    action = (action ~= "" and (action .. " ") or "") .. objectText
+                end
+            end)
+            local pos, ref = modelRef(item)
+            if pos then
+                acc[item] = { kind = "container", text = item.Name, action = action, prompt = prompt, pos = pos, part = ref }
+            end
+            return
+        end
+    end
+
+    if Objects.totems and matchesAny(item.Name, PAT_TOTEM) then
+        local pos, ref = modelRef(item)
+        if pos then acc[item] = { kind = "totem", text = item.Name, pos = pos, part = ref } end
+        return
+    end
+
+    if Objects.beds and matchesAny(item.Name, PAT_BED) then
+        local pos, ref = modelRef(item)
+        if pos then acc[item] = { kind = "bed", text = item.Name, pos = pos, part = ref } end
+        return
+    end
+
+    if Objects.containers and matchesAny(item.Name, PAT_CONTAINER) then
+        local pos, ref = modelRef(item)
+        if pos then acc[item] = { kind = "container", text = item.Name, pos = pos, part = ref } end
+        return
+    end
+
+    local extra = extraPatterns()
+    if #extra > 0 and matchesAny(item.Name, extra) then
+        local pos, ref = modelRef(item)
+        if pos then acc[item] = { kind = "extra", text = item.Name, pos = pos, part = ref } end
+    end
+end
+
+local worldFound = {}
+local worldPass = nil
+local worldLabels = {}
+local worldLabelTimer = 0
+
+local function anyObjectEspEnabled()
+    return Objects.containers or Objects.totems or Objects.beds or Objects.weapons
+end
+
+-- varredura com orcamento de tempo por frame: nunca engasga o celular
+local function worldScanTick()
+    if not anyObjectEspEnabled() then
+        if next(worldFound) ~= nil then worldFound = {} end
+        worldPass = nil
+        return
+    end
+    if not worldPass then worldPass = { index = 1, acc = {} } end
+    local children = Workspace:GetChildren()
+    local deadline = os.clock() + 0.0025
+    while worldPass.index <= #children and os.clock() < deadline do
+        local item = children[worldPass.index]
+        worldPass.index = worldPass.index + 1
+        pcall(inspectWorldItem, item, worldPass.acc)
+    end
+    if worldPass.index > #children then
+        worldFound = worldPass.acc
+        worldPass = { index = 1, acc = {} }
+    end
+end
+
+local function worldLabel(key, refPart, text, color)
+    local obj = worldLabels[key]
+    if not obj and hasDrawing and refPart then
+        local ok = pcall(function()
+            obj = { text = newDrawing("Text", { Size = 13, Center = true, Outline = true }), ref = refPart }
+        end)
+        if ok and obj then worldLabels[key] = obj end
+    end
+    if not obj and refPart then
+        local ok = pcall(function()
+            local bb = Instance.new("BillboardGui")
+            bb.Name = "trident_obj"
+            bb.Size = UDim2.fromOffset(190, 22)
+            bb.StudsOffset = Vector3.new(0, 1.8, 0)
+            bb.AlwaysOnTop = true
+            bb.Adornee = refPart
+            local lbl = Instance.new("TextLabel")
+            lbl.BackgroundTransparency = 1
+            lbl.Size = UDim2.fromScale(1, 1)
+            lbl.Font = Enum.Font.Code
+            lbl.TextSize = 12
+            lbl.TextStrokeTransparency = 0
+            lbl.Text = text
+            lbl.TextColor3 = color
+            lbl.Parent = bb
+            bb.Parent = game:GetService("CoreGui")
+            obj = { gui = bb, label = lbl, ref = refPart }
+        end)
+        if ok and obj then worldLabels[key] = obj end
+    end
+    if not obj then return end
+    pcall(function()
+        if obj.text then
+            local screen = projectPoint(partPos(refPart) or Vector3.new(0, 0, 0))
+            obj.text.Visible = screen ~= nil
+            if screen then
+                obj.text.Position = screen
+                obj.text.Text = text
+                obj.text.Color = color
+            end
+        else
+            if obj.ref ~= refPart then
+                obj.ref = refPart
+                obj.gui.Adornee = refPart
+            end
+            obj.label.Text = text
+            obj.label.TextColor3 = color
+        end
+    end)
+end
+
+local function updateWorldLabels(dt)
+    worldLabelTimer = worldLabelTimer + (dt or 0)
+    if worldLabelTimer < 0.2 then return end
+    worldLabelTimer = 0
+
+    local alive = {}
+    local myPos = myPosition()
+    local queue = {}
+
+    for key, info in pairs(worldFound) do
+        if key.Parent and info.pos then
+            local dist = myPos and (info.pos - myPos).Magnitude or 0
+            if dist <= Objects.maxDistance then
+                queue[#queue + 1] = { key = key, info = info, dist = dist }
+            end
+        end
+    end
+
+    table.sort(queue, function(a, b) return a.dist < b.dist end)
+
+    for i = 1, #queue do
+        if i > Objects.maxLabels then break end
+        local entry = queue[i]
+        local info = entry.info
+        local color = KIND_COLOR[info.kind] or KIND_COLOR.extra
+        local text = string.format("%s  %dm", tostring(info.text), math.floor(entry.dist))
+        if Objects.showAction and info.action and info.action ~= "" then
+            text = text .. " [" .. info.action .. "]"
+        end
+        worldLabel(entry.key, info.part or entry.key, text, color)
+        alive[entry.key] = true
+    end
+
+    for key, obj in pairs(worldLabels) do
+        if not alive[key] then
+            if obj.gui then pcall(function() obj.gui:Destroy() end) end
+            if obj.text then pcall(function() obj.text:Remove() end) end
+            worldLabels[key] = nil
+        end
+    end
+end
+
+local function clearWorldLabels()
+    for key, obj in pairs(worldLabels) do
+        if obj.gui then pcall(function() obj.gui:Destroy() end) end
+        if obj.text then pcall(function() obj.text:Remove() end) end
+        worldLabels[key] = nil
+    end
+end
+
+-- auto loot: dispara o prompt do container mais proximo (fireproximityprompt
+-- quando o executor tem; senao tenta InputHoldBegin/End)
+local lootTimer = 0
+
+local function firePrompt(prompt)
+    if type(fireproximityprompt) == "function" then
+        local ok = pcall(fireproximityprompt, prompt)
+        if ok then return true end
+    end
+    local ok2 = pcall(function()
+        prompt:InputHoldBegin()
+        prompt:InputHoldEnd()
+    end)
+    return ok2
+end
+
+addUpdater(function(dt)
+    worldScanTick()
+    updateWorldLabels(dt)
+
+    if not Objects.autoLoot then return end
+    lootTimer = lootTimer + (dt or 0)
+    if lootTimer < Objects.lootDelay then return end
+    lootTimer = 0
+
+    local myPos = myPosition()
+    if not myPos then return end
+    local bestPrompt, bestDist = nil, Objects.lootRadius
+    for key, info in pairs(worldFound) do
+        if info.kind == "container" and info.prompt and key.Parent and info.pos then
+            local dist = (info.pos - myPos).Magnitude
+            if dist <= bestDist then
+                bestPrompt, bestDist = info.prompt, dist
+            end
+        end
+    end
+    if bestPrompt then firePrompt(bestPrompt) end
+end)
+
+--=====================================================================
+-- 9.6 CHAMS — arco-iris fluido por parte + aura no player local
+--=====================================================================
+-- Cada parte do modelo ganha um Highlight com matiz propria e deslocada
+-- no tempo: as cores andam dentro do corpo em vez de o boneco inteiro
+-- piscar de uma cor para outra.
+
+local Chams = {
+    players = false,
+    npc = false,
+    localPlayer = false,
+    flow = true,
+    speed = 0.4,
+    transparency = 0.45,
+    outline = true,
+    quality = 8,
+    depth = true,
+    color = Color3.fromRGB(96, 205, 255),
+    aura = false,
+    auraRate = 14,
+}
+
+local chamsModels = {}
+local chamsParts = 0
+local CHAMS_PART_LIMIT = 280
+local chamsHue = 0
+local chamsTimer = 0
+local auraStore = nil
+
+local function hsvColor(h, s, v)
+    return Color3.fromHSV(h % 1, s, v)
+end
+
+local function clearModelChams(model)
+    local group = chamsModels[model]
+    if not group then return end
+    for hl in pairs(group.parts) do
+        pcall(function() hl:Destroy() end)
+        chamsParts = chamsParts - 1
+    end
+    chamsModels[model] = nil
+end
+
+local function clearAllChams()
+    for model in pairs(chamsModels) do
+        clearModelChams(model)
+    end
+    chamsModels = {}
+    chamsParts = 0
+end
+
+local function buildModelChams(model)
+    if chamsModels[model] or chamsParts >= CHAMS_PART_LIMIT then return end
+    local parts = {}
+    pcall(function()
+        for _, d in ipairs(model:GetDescendants()) do
+            if d:IsA("BasePart") and d.Name ~= "HumanoidRootPart" then
+                parts[#parts + 1] = d
+                if #parts >= Chams.quality then break end
+            end
+        end
+    end)
+    if #parts == 0 then return end
+
+    local group = { parts = {}, count = #parts }
+    for i = 1, #parts do
+        if chamsParts >= CHAMS_PART_LIMIT then break end
+        local part = parts[i]
+        local hl
+        local ok = pcall(function()
+            hl = Instance.new("Highlight")
+            hl.Name = "trident_cham"
+            hl.Adornee = part
+            hl.Parent = part
+        end)
+        if ok and hl then
+            group.parts[hl] = i / #parts
+            chamsParts = chamsParts + 1
+        end
+    end
+    if next(group.parts) ~= nil then
+        chamsModels[model] = group
+    end
+end
+
+local function clearAura()
+    if not auraStore then return end
+    pcall(function() if auraStore.emitter then auraStore.emitter:Destroy() end end)
+    pcall(function() if auraStore.hl then auraStore.hl:Destroy() end end)
+    auraStore = nil
+end
+
+local function buildAura()
+    clearAura()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = Game.middle or char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
+    if not root then return end
+    local store = {}
+    pcall(function()
+        local emitter = Instance.new("ParticleEmitter")
+        emitter.Name = "trident_aura"
+        emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+        emitter.Rate = Chams.auraRate
+        emitter.Lifetime = NumberRange.new(0.6, 1.3)
+        emitter.Speed = NumberRange.new(0.4, 1.6)
+        emitter.SpreadAngle = Vector2.new(180, 180)
+        emitter.Size = NumberSequence.new(0.55)
+        emitter.LightEmission = 1
+        emitter.LightInfluence = 0
+        emitter.Acceleration = Vector3.new(0, 2.2, 0)
+        emitter.Transparency = NumberSequence.new(0.35)
+        emitter.Color = ColorSequence.new(hsvColor(chamsHue, 1, 1))
+        emitter.Parent = root
+        store.emitter = emitter
+    end)
+    pcall(function()
+        local hl = Instance.new("Highlight")
+        hl.Name = "trident_aura"
+        hl.Adornee = char
+        hl.FillTransparency = 0.7
+        hl.OutlineTransparency = 0
+        hl.Parent = char
+        store.hl = hl
+    end)
+    auraStore = store
+end
+
+local function updateChams(dt)
+    chamsHue = chamsHue + (dt or 0) * Chams.speed
+
+    local anyEntityChams = Chams.players or Chams.npc
+    if not anyEntityChams and not Chams.localPlayer then
+        if next(chamsModels) ~= nil then clearAllChams() end
+        return
+    end
+
+    local wanted = {}
+    if anyEntityChams then
+        for _, ent in pairs(getEntities()) do
+            if (ent.isPlayer and Chams.players) or ((not ent.isPlayer) and Chams.npc) then
+                wanted[ent.model] = true
+            end
+        end
+    end
+    if Chams.localPlayer then
+        local char = LocalPlayer.Character
+        if char then wanted[char] = true end
+    end
+
+    for model in pairs(chamsModels) do
+        if not wanted[model] or not model.Parent then clearModelChams(model) end
+    end
+    for model in pairs(wanted) do
+        buildModelChams(model)
+    end
+
+    chamsTimer = chamsTimer + (dt or 0)
+    if chamsTimer < 0.05 then return end
+    chamsTimer = 0
+
+    local depthMode = Chams.depth and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
+    for _, group in pairs(chamsModels) do
+        for hl, offset in pairs(group.parts) do
+            local color = Chams.flow and hsvColor(chamsHue + offset, 1, 1) or Chams.color
+            pcall(function()
+                hl.FillColor = color
+                hl.OutlineColor = color
+                hl.FillTransparency = Chams.transparency
+                hl.OutlineTransparency = Chams.outline and 0 or 1
+                hl.DepthMode = depthMode
+            end)
+        end
+    end
+end
+
+addUpdater(function(dt)
+    updateChams(dt)
+
+    if not Chams.aura then
+        if auraStore then clearAura() end
+        return
+    end
+
+    if not auraStore then buildAura() end
+    if not auraStore then return end
+
+    local color = hsvColor(chamsHue, 1, 1)
+    pcall(function()
+        if auraStore.emitter then
+            auraStore.emitter.Color = ColorSequence.new(color)
+            auraStore.emitter.Rate = Chams.auraRate
+        end
+        if auraStore.hl then
+            auraStore.hl.FillColor = color
+            auraStore.hl.OutlineColor = color
+        end
+    end)
+end)
+
+--=====================================================================
+-- 9.7 WORLD FX — gamma falso, saturacao, bloom e atmosfera
+--=====================================================================
+-- ColorCorrection + Bloom + SunRays + Atmosphere controlados por slider.
+-- "Gamma falso" = brilho/contraste/saturacao/tinta combinados, sem mexer
+-- no Lighting.Brightness do jogo (que volta sozinho em alguns maps).
+
+local WorldFx = {
+    enabled = false,
+    preset = "natural",
+    brightness = 0.05,
+    contrast = 0.12,
+    saturation = 0.28,
+    tint = Color3.fromRGB(255, 255, 255),
+    bloom = false,
+    bloomIntensity = 0.7,
+    bloomSize = 24,
+    bloomThreshold = 0.95,
+    sunrays = false,
+    atmosphere = false,
+    haze = 1.2,
+    density = 0.3,
+    pulse = false,
+}
+
+local FX_PRESETS = {
+    natural = { brightness = 0.05, contrast = 0.12, saturation = 0.28, tint = Color3.fromRGB(255, 255, 255), bloom = false, atmosphere = false },
+    neon = { brightness = 0.12, contrast = 0.26, saturation = 0.55, tint = Color3.fromRGB(210, 235, 255), bloom = true, atmosphere = false },
+    cinema = { brightness = -0.02, contrast = 0.32, saturation = 0.05, tint = Color3.fromRGB(255, 240, 220), bloom = true, atmosphere = true },
+    noite = { brightness = 0.35, contrast = 0.22, saturation = 0.18, tint = Color3.fromRGB(170, 200, 255), bloom = false, atmosphere = false },
+    vapor = { brightness = 0.08, contrast = 0.2, saturation = 0.62, tint = Color3.fromRGB(255, 170, 240), bloom = true, atmosphere = true },
+}
+
+local fxObjects = {}
+local fxTimer = 0
+local fxPhase = 0
+
+local function destroyFx()
+    for key, obj in pairs(fxObjects) do
+        pcall(function() obj:Destroy() end)
+        fxObjects[key] = nil
+    end
+end
+
+local function ensureFx()
+    if fxObjects.cc then return end
+    pcall(function()
+        local cc = Instance.new("ColorCorrectionEffect")
+        cc.Name = "trident_cc"
+        cc.Parent = Lighting
+        fxObjects.cc = cc
+    end)
+    pcall(function()
+        local bloom = Instance.new("BloomEffect")
+        bloom.Name = "trident_bloom"
+        bloom.Enabled = false
+        bloom.Parent = Lighting
+        fxObjects.bloom = bloom
+    end)
+    pcall(function()
+        local rays = Instance.new("SunRaysEffect")
+        rays.Name = "trident_rays"
+        rays.Enabled = false
+        rays.Parent = Lighting
+        fxObjects.rays = rays
+    end)
+    pcall(function()
+        local atm = Instance.new("Atmosphere")
+        atm.Name = "trident_atm"
+        atm.Enabled = false
+        atm.Parent = Lighting
+        fxObjects.atm = atm
+    end)
+end
+
+local function applyPreset(name)
+    local preset = FX_PRESETS[name]
+    if not preset then return end
+    WorldFx.preset = name
+    for key, value in pairs(preset) do
+        WorldFx[key] = value
+    end
+end
+
+local function updateWorldFx(dt)
+    if not WorldFx.enabled then
+        if next(fxObjects) ~= nil then destroyFx() end
+        return
+    end
+    ensureFx()
+
+    fxPhase = fxPhase + (dt or 0)
+    fxTimer = fxTimer + (dt or 0)
+    if fxTimer < 0.1 then return end
+    fxTimer = 0
+
+    local pulse = 0
+    if WorldFx.pulse then pulse = math.sin(fxPhase * 2.4) * 0.06 end
+
+    pcall(function()
+        local cc = fxObjects.cc
+        if cc then
+            cc.Brightness = math.clamp(WorldFx.brightness + pulse, -1, 1)
+            cc.Contrast = math.clamp(WorldFx.contrast + pulse * 0.5, -1, 1)
+            cc.Saturation = math.clamp(WorldFx.saturation + pulse, -1, 1)
+            cc.TintColor = WorldFx.tint
+        end
+        local bloom = fxObjects.bloom
+        if bloom then
+            bloom.Enabled = WorldFx.bloom
+            bloom.Intensity = WorldFx.bloomIntensity
+            bloom.Size = WorldFx.bloomSize
+            bloom.Threshold = WorldFx.bloomThreshold
+        end
+        local rays = fxObjects.rays
+        if rays then rays.Enabled = WorldFx.sunrays end
+        local atm = fxObjects.atm
+        if atm then
+            atm.Enabled = WorldFx.atmosphere
+            atm.Haze = WorldFx.haze
+            atm.Density = WorldFx.density
+            atm.Color = WorldFx.tint
+        end
+    end)
+end
+
+addUpdater(function(dt)
+    updateWorldFx(dt)
 end)
 
 --=====================================================================
@@ -1468,6 +2226,23 @@ TCombat:CreateToggle({
     callback = function(v) Aim.targetNpc = v end,
 })
 
+TCombat:CreateSection({ name = "Mira no celular" })
+
+TCombat:CreateToggle({
+    name = "Mira fixa no centro",
+    description = "FOV, selecao de alvo e crosshair usam o centro da tela. No celular isso impede a mira de seguir o dedo.",
+    flag = "aim_center",
+    value = IS_MOBILE,
+    callback = function(v)
+        Aim.centerLock = v
+        Window:Notify({
+            title = v and "Mira no centro" or "Mira no dedo",
+            content = v and "FOV e alvo travados no centro da tela." or "FOV e alvo seguem o toque.",
+            duration = 3,
+        })
+    end,
+})
+
 TCombat:CreateSection({ name = "Hitbox" })
 
 TCombat:CreateToggle({
@@ -1513,6 +2288,29 @@ TCombat:CreateToggle({
 -- 14. UI — VISUALS
 --=====================================================================
 TVisual:CreateSection({ name = "ESP de players" })
+
+TVisual:CreateToggle({
+    name = "Players",
+    flag = "esp_players",
+    value = true,
+    callback = function(v) Esp.players = v end,
+})
+
+TVisual:CreateToggle({
+    name = "NPC",
+    description = "Inimigos do mapa, separados dos players.",
+    flag = "esp_npc",
+    value = true,
+    callback = function(v) Esp.npc = v end,
+})
+
+TVisual:CreateToggle({
+    name = "Arma na mao",
+    description = "Mostra o nome da arma que o alvo esta segurando.",
+    flag = "esp_weapon",
+    value = true,
+    callback = function(v) Esp.weapon = v end,
+})
 
 TVisual:CreateToggle({
     name = "ESP ativo",
@@ -1589,6 +2387,111 @@ TVisual:CreateColorPicker({
     flag = "esp_color",
     color = Color3.fromRGB(96, 205, 255),
     callback = function(color) Esp.color = color end,
+})
+
+TVisual:CreateSection({ name = "Chams arco-iris" })
+
+TVisual:CreateToggle({
+    name = "Chams em players",
+    description = "Cada parte do corpo com matiz diferente: as cores andam dentro do modelo.",
+    flag = "cham_players",
+    value = false,
+    callback = function(v) Chams.players = v end,
+})
+
+TVisual:CreateToggle({
+    name = "Chams em NPC",
+    flag = "cham_npc",
+    value = false,
+    callback = function(v) Chams.npc = v end,
+})
+
+TVisual:CreateToggle({
+    name = "Chams no player local",
+    description = "Visual estetico no seu personagem.",
+    flag = "cham_local",
+    value = false,
+    callback = function(v) Chams.localPlayer = v end,
+})
+
+TVisual:CreateToggle({
+    name = "Cores em movimento",
+    description = "Desligado usa a cor fixa do seletor.",
+    flag = "cham_flow",
+    value = true,
+    callback = function(v) Chams.flow = v end,
+})
+
+TVisual:CreateSlider({
+    name = "Velocidade das cores",
+    flag = "cham_speed",
+    range = { 0.05, 2 },
+    increment = 0.05,
+    value = 0.4,
+    callback = function(v) Chams.speed = v end,
+})
+
+TVisual:CreateSlider({
+    name = "Transparencia do chams",
+    flag = "cham_transp",
+    range = { 0, 0.9 },
+    increment = 0.05,
+    value = 0.45,
+    callback = function(v) Chams.transparency = v end,
+})
+
+TVisual:CreateSlider({
+    name = "Partes por modelo",
+    description = "Mais partes = mais arco-iris, mais custo no celular.",
+    flag = "cham_quality",
+    range = { 2, 16 },
+    increment = 1,
+    value = 8,
+    callback = function(v)
+        Chams.quality = v
+        if next(chamsModels) ~= nil then clearAllChams() end
+    end,
+})
+
+TVisual:CreateToggle({
+    name = "Contorno",
+    flag = "cham_outline",
+    value = true,
+    callback = function(v) Chams.outline = v end,
+})
+
+TVisual:CreateToggle({
+    name = "Sempre na frente",
+    description = "Mostra o chams mesmo atraves da parede.",
+    flag = "cham_depth",
+    value = true,
+    callback = function(v) Chams.depth = v end,
+})
+
+TVisual:CreateColorPicker({
+    name = "Cor fixa do chams",
+    flag = "cham_color",
+    color = Color3.fromRGB(96, 205, 255),
+    callback = function(color) Chams.color = color end,
+})
+
+TVisual:CreateSection({ name = "Aura (player local)" })
+
+TVisual:CreateToggle({
+    name = "Aura estetica",
+    description = "Particulas e brilho arco-iris no seu personagem.",
+    flag = "aura_on",
+    value = false,
+    callback = function(v) Chams.aura = v end,
+})
+
+TVisual:CreateSlider({
+    name = "Particulas por segundo",
+    flag = "aura_rate",
+    range = { 1, 60 },
+    increment = 1,
+    value = 14,
+    callback = function(v) Chams.auraRate = v end,
 })
 
 TVisual:CreateSection({ name = "Overlay na tela" })
@@ -1785,6 +2688,110 @@ TWorld:CreateButton({
     end,
 })
 
+TWorld:CreateSection({ name = "Gamma falso / filtro do mundo" })
+
+TWorld:CreateToggle({
+    name = "Ativar filtro",
+    description = "Color correction + bloom + atmosfera. Deixa o mapa mais claro e bonito.",
+    flag = "fx_on",
+    value = false,
+    callback = function(v) WorldFx.enabled = v end,
+})
+
+TWorld:CreateDropdown({
+    name = "Preset",
+    flag = "fx_preset",
+    options = { "natural", "neon", "cinema", "noite", "vapor" },
+    currentOption = { "natural" },
+    multipleOptions = false,
+    callback = function(option)
+        local picked = type(option) == "table" and option[1] or option
+        applyPreset(tostring(picked))
+        Window:Notify({ title = "Preset", content = tostring(picked), duration = 3 })
+    end,
+})
+
+TWorld:CreateSlider({
+    name = "Brilho (gamma)",
+    flag = "fx_brightness",
+    range = { -0.5, 0.6 },
+    increment = 0.01,
+    value = 0.05,
+    callback = function(v) WorldFx.brightness = v end,
+})
+
+TWorld:CreateSlider({
+    name = "Contraste",
+    flag = "fx_contrast",
+    range = { -0.5, 0.6 },
+    increment = 0.01,
+    value = 0.12,
+    callback = function(v) WorldFx.contrast = v end,
+})
+
+TWorld:CreateSlider({
+    name = "Saturacao",
+    flag = "fx_saturation",
+    range = { -1, 1 },
+    increment = 0.01,
+    value = 0.28,
+    callback = function(v) WorldFx.saturation = v end,
+})
+
+TWorld:CreateColorPicker({
+    name = "Tinta do mundo",
+    flag = "fx_tint",
+    color = Color3.fromRGB(255, 255, 255),
+    callback = function(color) WorldFx.tint = color end,
+})
+
+TWorld:CreateToggle({
+    name = "Bloom",
+    flag = "fx_bloom",
+    value = false,
+    callback = function(v) WorldFx.bloom = v end,
+})
+
+TWorld:CreateSlider({
+    name = "Intensidade do bloom",
+    flag = "fx_bloom_int",
+    range = { 0, 3 },
+    increment = 0.05,
+    value = 0.7,
+    callback = function(v) WorldFx.bloomIntensity = v end,
+})
+
+TWorld:CreateToggle({
+    name = "Raios de sol",
+    flag = "fx_rays",
+    value = false,
+    callback = function(v) WorldFx.sunrays = v end,
+})
+
+TWorld:CreateToggle({
+    name = "Atmosfera / neblina",
+    flag = "fx_atm",
+    value = false,
+    callback = function(v) WorldFx.atmosphere = v end,
+})
+
+TWorld:CreateSlider({
+    name = "Densidade da neblina",
+    flag = "fx_density",
+    range = { 0, 1 },
+    increment = 0.01,
+    value = 0.3,
+    callback = function(v) WorldFx.density = v end,
+})
+
+TWorld:CreateToggle({
+    name = "Pulsar devagar",
+    description = "Brilho e saturacao respirando de leve.",
+    flag = "fx_pulse",
+    value = false,
+    callback = function(v) WorldFx.pulse = v end,
+})
+
 --=====================================================================
 -- 16. UI — MOVEMENT
 --=====================================================================
@@ -1904,6 +2911,118 @@ TMove:CreateSlider({
 })
 
 --=====================================================================
+-- 16.5 UI — OBJETOS DO MUNDO
+--=====================================================================
+TObj:CreateSection({ name = "Containers e itens" })
+
+TObj:CreateToggle({
+    name = "Containers",
+    description = "Pega qualquer caixa/cofre com prompt de interacao, sem depender do nome.",
+    flag = "obj_containers",
+    value = false,
+    callback = function(v) Objects.containers = v end,
+})
+
+TObj:CreateToggle({
+    name = "Totens",
+    description = "Totens de respawn / claim.",
+    flag = "obj_totems",
+    value = false,
+    callback = function(v) Objects.totems = v end,
+})
+
+TObj:CreateToggle({
+    name = "Camas e caixa de spawn",
+    description = "Saco de dormir, cama, barraca, fogueira e ponto de respawn do player.",
+    flag = "obj_beds",
+    value = false,
+    callback = function(v) Objects.beds = v end,
+})
+
+TObj:CreateToggle({
+    name = "Armas no chao",
+    description = "Tools e armas dropadas.",
+    flag = "obj_weapons",
+    value = false,
+    callback = function(v) Objects.weapons = v end,
+})
+
+TObj:CreateSlider({
+    name = "Distancia dos objetos",
+    flag = "obj_dist",
+    range = { 50, 1200 },
+    increment = 10,
+    suffix = "m",
+    value = 350,
+    callback = function(v) Objects.maxDistance = v end,
+})
+
+TObj:CreateSlider({
+    name = "Maximo de etiquetas",
+    description = "Limite para nao derrubar o FPS no celular.",
+    flag = "obj_labels",
+    range = { 5, 150 },
+    increment = 5,
+    value = 55,
+    callback = function(v) Objects.maxLabels = v end,
+})
+
+TObj:CreateToggle({
+    name = "Mostrar acao do prompt",
+    description = "Exibe o texto do prompt (Loot, Abrir, etc) junto do nome.",
+    flag = "obj_action",
+    value = true,
+    callback = function(v) Objects.showAction = v end,
+})
+
+TObj:CreateInput({
+    name = "Nomes extras",
+    description = "Nomes que voce viu no jogo, separados por virgula.",
+    placeholder = "cofre_militar, caixa_papelao",
+    flag = "obj_extra",
+    currentValue = "",
+    callback = function(text) Objects.extraNames = tostring(text) end,
+})
+
+TObj:CreateButton({
+    name = "Escanear agora",
+    callback = function()
+        worldPass = { index = 1, acc = {} }
+        Window:Notify({ title = "Escanear", content = "Varredura do mapa reiniciada.", duration = 3 })
+    end,
+})
+
+TObj:CreateSection({ name = "Auto loot" })
+
+TObj:CreateToggle({
+    name = "Auto loot",
+    description = "Dispara o prompt do container mais proximo.",
+    flag = "obj_autoloot",
+    value = false,
+    callback = function(v) Objects.autoLoot = v end,
+})
+
+TObj:CreateSlider({
+    name = "Raio do auto loot",
+    flag = "obj_lootradius",
+    range = { 5, 80 },
+    increment = 1,
+    suffix = "m",
+    value = 22,
+    callback = function(v) Objects.lootRadius = v end,
+})
+
+TObj:CreateSlider({
+    name = "Intervalo entre coletas",
+    flag = "obj_lootdelay",
+    range = { 0.2, 3 },
+    increment = 0.05,
+    suffix = "s",
+    value = 0.45,
+    callback = function(v) Objects.lootDelay = v end,
+})
+
+--=====================================================================
 -- 17. UI — CONFIG
 --=====================================================================
 TConfig:CreateSection({ name = "Aparencia" })
@@ -1999,6 +3118,9 @@ TConfig:CreateButton({
         Log:add("humanoid (analogico): " .. (Game.character and "ok" or "nao (usando teclado)"))
         Log:add("camera: " .. (Camera and Camera:GetFullName() or "sem camera"))
         Log:add("plataforma: " .. (IS_MOBILE and "celular" or "pc"))
+        Log:add("mira: " .. (Aim.centerLock and "fixa no centro" or "segue o dedo/mouse"))
+        Log:add("objetos no mapa: " .. tostring(#Workspace:GetChildren()))
+        Log:add("Highlight: " .. tostring(select(1, pcall(function() local h = Instance.new("Highlight"); h:Destroy() end)) and "ok" or "indisponivel"))
         Log:add("alvos vistos: " .. tostring(#getEntities(true)))
         Window:Notify({ title = "Diagnostico", content = "Veja a aba Config > Console.", duration = 4 })
     end,
@@ -2033,6 +3155,10 @@ local function liftoff()
 
     Esp.enabled = false
     clearEsp()
+    clearAllChams()
+    clearAura()
+    clearWorldLabels()
+    destroyFx()
 
     if Overlay.objects then
         for _, obj in pairs(Overlay.objects) do
@@ -2062,7 +3188,7 @@ getgenv = getgenv or function() return _G end
 local genv = getgenv()
 if type(genv) == "table" then
     genv.trident_unload = liftoff
-    genv.trident = { Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Window = Window }
+    genv.trident = { Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Window = Window }
 end
 
 --=====================================================================
