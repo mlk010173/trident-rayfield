@@ -16,19 +16,6 @@
       * ESP com dois backends: Drawing (PC/executor completo) e Highlight +
         BillboardGui (Arceus X / mobile, sem Drawing).
 
-    Build 2.7 (pacote AV0X extraido do trace da VM):
-      * Containers: Model com filho "default" e partes box/trash (padrao AV0X),
-        rotulo Box/Trash em amarelo 230,182,0.
-      * Zonas: workspace.World.Zones.SafeZones (SAFE verde) e NoBuildZones
-        (NO BUILD vermelho).
-      * Veiculos: ReplicatedStorage.Shared.entities.vehicles, rotulo com o nome
-        do veiculo (Helicopter etc.) em verde.
-      * Arm chams: pinta HandModel do workspace.Const.Ignore.FPSArms
-        (DefaultSight, Barrel, Body, ChargingHandle, Decals, Mag, Rails,
-        ShoulderPad, Stock) com material configuravel.
-      * Fonte: deob/AV0X_reconstructed.lua (522 linhas reconstruidas da VM
-        WeAreDevs executada em Luau real; ver deob/AV0X.md).
-
     Build 2.6 (somente Linoria, layout do AV0X):
       * Rayfield removido: a UI e so Linoria. Se a Linoria nao carregar o
         script para com mensagem clara em vez de trocar de biblioteca.
@@ -426,13 +413,105 @@ local function liftTab(t, uid)
     return tab
 end
 
-local RawWindow = Library:CreateWindow({
-    Title = "trident",
-    SubTitle = IS_MOBILE and "build 2.6 - mobile" or "build 2.6",
-    TabWidth = 170,
-    BaseKey = Enum.KeyCode.RightShift,
-    Font = nil,
-})
+-- A janela desta Linoria nasce com Visible = false e so abre quando
+-- Config.AutoShow esta ligado ou quando alguem aperta RightShift/RightControl.
+-- Sem AutoShow o menu fica invisivel no celular (nao existe tecla), que era
+-- exatamente o sintoma do build 2.6/2.7.
+local RawWindow
+do
+    local config = {
+        Title = "trident",
+        SubTitle = IS_MOBILE and "build 2.8 - mobile" or "build 2.8",
+        TabWidth = 170,
+        BaseKey = Enum.KeyCode.RightShift,
+        Font = nil,
+        Center = true,
+        AutoShow = true,
+    }
+    local ok, res = pcall(function() return Library:CreateWindow(config) end)
+    if not (ok and type(res) == "table") then
+        local ok2, res2 = pcall(function() return Library:CreateWindow({ Title = "trident", AutoShow = true }) end)
+        if ok2 and type(res2) == "table" then res = res2 end
+    end
+    RawWindow = type(res) == "table" and res or nil
+end
+
+-- garante a janela aberta mesmo se o AutoShow falhar (task.spawn do
+-- executor com timers bloqueados, por exemplo)
+pcall(function()
+    if not RawWindow then return end
+    local holder = RawWindow.Holder or rawget(RawWindow, "Holder")
+    if holder and holder.Visible ~= true then
+        if type(Library.Toggle) == "function" then
+            local ok = pcall(function() task.spawn(Library.Toggle) end)
+            if not ok then pcall(function() Library:Toggle() end) end
+        end
+        holder.Visible = true
+    end
+end)
+
+-- botao flutuante "MENU" para toque: no celular nao existe RightShift e a
+-- janela pode ser fechada sem querer, entao o botao reabre a qualquer hora.
+local MenuButton = nil
+pcall(function()
+    local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 10)
+    if not playerGui then return end
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "tridentMenuButton"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.DisplayOrder = 999
+    gui.Parent = playerGui
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.fromOffset(92, 32)
+    button.Position = UDim2.new(0, 10, 0, 46)
+    button.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+    button.BackgroundTransparency = 0.1
+    button.BorderSizePixel = 0
+    button.Text = "\226\137\161 MENU"
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 13
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.ZIndex = 10
+    button.Parent = gui
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(230, 182, 0)
+    stroke.Transparency = 0.35
+    stroke.Parent = button
+    button.MouseButton1Click:Connect(function()
+        pcall(function()
+            if type(Library.Toggle) == "function" then
+                task.spawn(Library.Toggle)
+            end
+        end)
+    end)
+    local dragging, dragStart, startPos = false, nil, nil
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    button.InputChanged:Connect(function(input)
+        if not dragging or not dragStart then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            button.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    MenuButton = { gui = gui, button = button }
+end)
 
 local Win, tabCount = { lib = Library, raw = RawWindow }, 0
 function Win:CreateTab(o)
@@ -563,7 +642,7 @@ end)
 
 Window:Notify({
     title = "trident",
-    content = "Linoria carregada (build 2.6).",
+    content = "Linoria carregada (build 2.8).",
     duration = 4,
 })
 
