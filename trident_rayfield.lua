@@ -16,6 +16,19 @@
       * ESP com dois backends: Drawing (PC/executor completo) e Highlight +
         BillboardGui (Arceus X / mobile, sem Drawing).
 
+    Build 2.6 (somente Linoria, layout do AV0X):
+      * Rayfield removido: a UI e so Linoria. Se a Linoria nao carregar o
+        script para com mensagem clara em vez de trocar de biblioteca.
+      * Abas na ordem do AV0X: Combat, ESP, Visuals, Movement, Objetos,
+        UI Settings.
+      * Secoes em DUAS colunas (groupbox esquerdo/direito alternando),
+        igual aos prints.
+      * Secao Configuration/Theme do addon SaveManager oficial da
+        Linoria (criar, listar, carregar e sobrescrever config).
+      * Watermark com FPS e Ping no canto superior.
+      * Modo seguro agora vem DESLIGADO (sem restricao): o silent aim de
+        projetil e o EntityMap por debug.getupvalues sobem por padrao.
+
     Build 2.5 (UI Linoria):
       * A interface passou para Linoria (a mesma do AV0X), que e a que
         se comporta melhor no celular: touch/drag nativos e sem
@@ -175,20 +188,44 @@ function Log:once(tag, msg)
 end
 
 --=====================================================================
--- 3. UI — LINORIA (padrao, melhor no celular) com Rayfield de reserva
+-- 3. UI — LINORIA (unica, sem reserva)
 --=====================================================================
--- Linoria e a biblioteca usada pelo AV0X: e a que se comporta melhor em
--- mobile (touch, drag, sem depender de MouseButton). Ela vem em texto puro
--- e recebe aqui um adaptador com a MESMA API que o resto do script usa,
--- entao os controles abaixo nao precisaram ser reescritos.
-local LINORIA_URL = "https://raw.githubusercontent.com/PyhTeT/avox.lol/main/Library.lua"
+-- Layout igual ao do AV0X: abas a esquerda, secoes em duas colunas
+-- (groupbox esquerdo/direito), busca por nome, tarja com FPS/Ping e a
+-- secao Configuration vinda do addon SaveManager da propria Linoria.
+local LINORIA_BASE = "https://raw.githubusercontent.com/PyhTeT/avox.lol/main/"
+
+local function fetchLua(name)
+    local ok, res = pcall(function()
+        return loadstring(game:HttpGet(LINORIA_BASE .. name))()
+    end)
+    if ok and type(res) == "table" then return res end
+    return nil
+end
+
+local Library = fetchLua("Library.lua")
+if type(Library) ~= "table" or type(Library.CreateWindow) ~= "function" then
+    error("[trident] nao consegui carregar a Linoria (HttpGet/loadstring do executor).")
+end
+if type(Library.LoadConfiguration) == "function" then
+    error("[trident] a URL da Linoria devolveu outra biblioteca (Rayfield). Ajuste LINORIA_BASE.")
+end
+
+local SaveManager = fetchLua("addons/SaveManager.lua")
+local ThemeManager = fetchLua("addons/ThemeManager.lua")
 
 local function enumName(v)
     if type(typeof) == "function" and typeof(v) == "EnumItem" then return v.Name end
-    local okName = type(v) == "table" and rawget(v, "Name")
-    if okName then return okName end
+    if type(v) == "table" and rawget(v, "Name") then return rawget(v, "Name") end
     local s = tostring(v)
     return (string.match(s, "([%w_]+)$")) or s
+end
+
+local UIFlags = {}
+
+local function rememberFlag(o, obj)
+    if o and o.flag and obj then UIFlags[o.flag] = obj end
+    return obj
 end
 
 local function liftGroupbox(g, uid)
@@ -207,7 +244,7 @@ local function liftGroupbox(g, uid)
                 Callback = o.callback,
             })
         end)
-        return self_
+        return rememberFlag(o, self_)
     end
     function box:CreateSlider(o)
         local self_ = {}
@@ -224,7 +261,7 @@ local function liftGroupbox(g, uid)
                 Callback = o.callback,
             })
         end)
-        return self_
+        return rememberFlag(o, self_)
     end
     function box:CreateButton(o)
         pcall(function()
@@ -244,7 +281,7 @@ local function liftGroupbox(g, uid)
                 Callback = o.callback,
             })
         end)
-        return self_
+        return rememberFlag(o, self_)
     end
     function box:CreateKeybind(o)
         local self_ = {}
@@ -286,7 +323,6 @@ local function liftGroupbox(g, uid)
         return self_
     end
     function box:CreateStat(o)
-        -- Linoria nao tem "stat": vira um label informativo
         local label
         pcall(function() label = g:AddLabel(tostring(o.name) .. ": " .. tostring(o.value or "")) end)
         return {
@@ -323,143 +359,116 @@ local function liftGroupbox(g, uid)
 end
 
 local function liftTab(t, uid)
-    local tab = {}
-    local group, box
-    local function ensure()
-        if not box then
-            pcall(function() group = t:AddLeftGroupbox("controles") end)
-            box = liftGroupbox(group, tostring(uid))
+    local tab, boxes, turn = {}, {}, 0
+    tab.raw = t
+
+    -- duas colunas como no AV0X: secao 1 na esquerda, 2 na direita, 3 na
+    -- esquerda... cada coluna tem o proprio groupbox (com scroll).
+    local function column(side)
+        if not boxes[side] then
+            local g
+            if side == "left" then
+                pcall(function() g = t:AddLeftGroupbox("geral") end)
+            else
+                pcall(function() g = t:AddRightGroupbox("geral") end)
+            end
+            boxes[side] = { group = g, box = liftGroupbox(g, tostring(uid) .. "_" .. side) }
         end
-        return box
+        return boxes[side]
     end
 
-    -- Um unico groupbox por aba (coluna unica, com scroll): no mobile isso
-    -- e bem melhor que uma coluna por secao, que estoura a largura.
+    local function nextColumn()
+        turn = turn + 1
+        return column(turn % 2 == 1 and "left" or "right")
+    end
+
     function tab:CreateSection(o)
-        local b = ensure()
+        local col = column("left")
+        -- titulo da secao como label + divisor na coluna que estiver livre
+        if boxes.right == nil or (turn % 2 == 1) then
+            col = column("left")
+        else
+            col = column("right")
+        end
+        turn = turn + 1
         pcall(function()
-            if group.AddDivider then group:AddDivider() end
-            if group.AddLabel then group:AddLabel(o.name) end
+            if col.group.AddDivider then col.group:AddDivider() end
+            if col.group.AddLabel then col.group:AddLabel(o.name) end
         end)
-        return b
+        return col.box
     end
 
     local methods = { "CreateToggle", "CreateSlider", "CreateButton", "CreateDropdown", "CreateKeybind", "CreateLabel", "CreateDivider", "CreateColorPicker", "CreateInput", "CreateStat", "CreateText" }
     for _, m in ipairs(methods) do
         tab[m] = function(_, o)
-            local b = ensure()
-            return b[m](b, o)
+            local col = nextColumn()
+            return col.box[m](col.box, o)
         end
     end
 
     function tab:CreateConsole(o)
-        return ensure():CreateConsole(o or {})
+        return column("left").box:CreateConsole(o or {})
     end
 
     return tab
 end
 
-local function buildLinoriaWindow()
-    local ok, lib = pcall(function()
-        return loadstring(game:HttpGet(LINORIA_URL))()
-    end)
-    if not ok or type(lib) ~= "table" then return nil end
-    if type(lib.CreateWindow) ~= "function" then return nil end
-    -- se veio Rayfield (tem LoadConfiguration) nao serve aqui
-    if type(lib.LoadConfiguration) == "function" then return nil end
+local RawWindow = Library:CreateWindow({
+    Title = "trident",
+    SubTitle = IS_MOBILE and "build 2.6 - mobile" or "build 2.6",
+    TabWidth = 170,
+    BaseKey = Enum.KeyCode.RightShift,
+    Font = nil,
+})
 
-    local okWin, raw = pcall(function()
-        return lib:CreateWindow({
-            Title = "trident",
-            SubTitle = IS_MOBILE and "build 2.5 - mobile" or "build 2.5",
-            TabWidth = 170,
-            BaseKey = Enum.KeyCode.RightShift,
-        })
-    end)
-    if not okWin or not raw then return nil end
-
-    local win, tabCount = { lib = lib, raw = raw }, 0
-    function win:CreateTab(o)
-        tabCount = tabCount + 1
-        local t
-        pcall(function() t = raw:AddTab(o.name) end)
-        return liftTab(t, tabCount)
+local Win, tabCount = { lib = Library, raw = RawWindow }, 0
+function Win:CreateTab(o)
+    tabCount = tabCount + 1
+    local t
+    pcall(function() t = RawWindow:AddTab(o.name) end)
+    return liftTab(t, tabCount)
+end
+function Win:CreateTag() return {} end
+function Win:Set(flag, value)
+    local el = UIFlags[flag]
+    if not el then return end
+    if type(el.Set) == "function" then
+        pcall(function() el:Set(value) end)
+    elseif type(el.SetValue) == "function" then
+        pcall(function() el:SetValue(value) end)
+    elseif type(el.SetValue) == "function" then
+        pcall(function() el:SetValue(value) end)
     end
-    function win:CreateTag() return {} end
-    function win:Notify(o)
-        local text = tostring(o.title or "trident")
-        if o.content then text = text .. " | " .. tostring(o.content) end
-        pcall(function() lib:Notify(text, o.duration or 4) end)
+end
+function Win:Get(flag)
+    local el = UIFlags[flag]
+    if not el then return nil end
+    if type(el.GetValue) == "function" then
+        local ok, v = pcall(function() return el:GetValue() end)
+        if ok then return v end
     end
-    function win:Popup(o)
-        local text = tostring(o.title or "trident") .. " | " .. tostring(o.subtitle or "")
-        pcall(function() lib:Notify(text, 5) end)
-    end
-    function win:SetTitle(txt)
-        pcall(function() raw:SetWindowTitle(txt) end)
-    end
-    return win
+    return el.Value
+end
+function Win:Notify(o)
+    local text = tostring(o.title or "trident")
+    if o.content then text = text .. " | " .. tostring(o.content) end
+    pcall(function() Library:Notify(text, o.duration or 4) end)
+end
+function Win:Popup(o)
+    pcall(function() Library:Notify(tostring(o.title or "") .. " | " .. tostring(o.subtitle or ""), 5) end)
 end
 
-local Window = buildLinoriaWindow()
+local Window = Win
 local hasConfig = false
 local UI_BACKEND = "linoria"
 
-if not Window then
-    -- reserva: Rayfield Gen2 (comportamento antigo)
-    UI_BACKEND = "rayfield"
-    local Rayfield
-    local urls = { "https://sirius.menu/gen2", "https://sirius.menu/gen2-preview" }
-    for i = 1, #urls do
-        if not Rayfield then
-            local ok, res = pcall(function()
-                return loadstring(game:HttpGet(urls[i]))()
-            end)
-            if ok and type(res) == "table" then Rayfield = res end
-        end
-    end
-    if type(Rayfield) ~= "table" then
-        error("[trident] nem Linoria nem Rayfield carregaram (verifique a internet do executor)")
-    end
-
-    local windowOk, WindowRes = pcall(function()
-        return Rayfield:CreateWindow({
-            name = "trident",
-            subtitle = "build 2.5",
-            theme = "cobalt",
-            sidebarLayout = true,
-            profile = IS_MOBILE and "mobile" or "desktop",
-            configuration = {
-                autoSave = true,
-                autoLoad = true,
-                fileName = "trident_gen2",
-                customFolder = "trident",
-            },
-        })
-    end)
-
-    Window = WindowRes
-    hasConfig = windowOk
-
-    if not windowOk or type(Window) ~= "table" then
-        Window = Rayfield:CreateWindow({
-            name = "trident",
-            subtitle = "build 2.5",
-            theme = "cobalt",
-            sidebarLayout = true,
-            profile = IS_MOBILE and "mobile" or "desktop",
-        })
-        hasConfig = false
-    end
-end
-
--- abas
-local TCombat = Window:CreateTab({ name = "Combat", icon = 93364949241311 })
-local TVisual = Window:CreateTab({ name = "Visuals", icon = 88090973560965 })
-local TWorld = Window:CreateTab({ name = "World", icon = 89258981739287 })
-local TMove = Window:CreateTab({ name = "Movement", icon = 87435173103629 })
+-- abas na ordem do AV0X
+local TCombat = Window:CreateTab({ name = "Combat" })
+local TVisual = Window:CreateTab({ name = "ESP" })
+local TWorld = Window:CreateTab({ name = "Visuals" })
+local TMove = Window:CreateTab({ name = "Movement" })
 local TObj = Window:CreateTab({ name = "Objetos" })
-local TConfig = Window:CreateTab({ name = "Config", icon = 125823673784681 })
+local TConfig = Window:CreateTab({ name = "UI Settings" })
 
 local Console = TConfig:CreateConsole({
     name = "Console / compatibilidade",
@@ -469,29 +478,83 @@ local Console = TConfig:CreateConsole({
 })
 Log.console = Console
 
-Window:CreateTag({ text = IS_MOBILE and "mobile" or "desktop", color = Color3.fromRGB(96, 205, 255) })
+-- Configuration / themes: addons oficiais da Linoria (mesma UI do AV0X)
+if SaveManager and type(SaveManager.BuildConfigSection) == "function" and TConfig.raw then
+    pcall(function()
+        SaveManager:SetLibrary(Library)
+        SaveManager:SetIgnoreIndexes({})
+        SaveManager:SetFolder("trident")
+        SaveManager:BuildConfigSection(TConfig.raw)
+        SaveManager:LoadAutoloadConfig()
+    end)
+    hasConfig = true
+end
+if ThemeManager and type(ThemeManager.BuildThemeManagerSection) == "function" and TConfig.raw then
+    pcall(function()
+        ThemeManager:SetLibrary(Library)
+        ThemeManager:BuildThemeManagerSection(TConfig.raw)
+    end)
+end
 
-Log:once("ui", "ui: " .. UI_BACKEND)
+--=====================================================================
+-- 3.1 WATERMARK (FPS + ping, como a tarja do AV0X)
+--=====================================================================
+local Watermark = { label = nil, gui = nil }
+pcall(function()
+    local parent = nil
+    if type(gethui) == "function" then
+        local ok, hui = pcall(gethui)
+        if ok then parent = hui end
+    end
+    if not parent then
+        parent = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    end
+    if not parent then return end
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "trident_watermark"
+    gui.IgnoreGuiInset = true
+    gui.ResetOnSpawn = false
+    gui.DisplayOrder = 10
+    local label = Instance.new("TextLabel")
+    label.Name = "wm"
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.Code
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(200, 210, 230)
+    label.TextStrokeTransparency = 0.5
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Size = UDim2.new(0, 320, 0, 20)
+    label.Position = UDim2.new(0, 12, 0, 8)
+    label.Text = "trident"
+    label.Parent = gui
+    gui.Parent = parent
+    Watermark.gui, Watermark.label = gui, label
+end)
+
+local wmClock = 0
+RunService.Heartbeat:Connect(function(dt)
+    wmClock = wmClock + (dt or 0)
+    if wmClock < 0.5 then return end
+    wmClock = 0
+    if not Watermark.label then return end
+    local fps = 0
+    pcall(function() fps = math.floor(1 / math.max(Workspace:GetRealPhysicsFPS() > 0 and dt or 0.016, 0.001)) end)
+    if fps <= 0 or fps > 240 then fps = 60 end
+    local ping = 0
+    pcall(function() ping = math.floor(LocalPlayer:GetNetworkPing() * 1000 + 0.5) end)
+    if ping < 0 then ping = 0 end
+    pcall(function()
+        Watermark.label.Text = string.format("trident | FPS: %d | Ping: %dms", fps, ping)
+    end)
+end)
 
 Window:Notify({
     title = "trident",
-    content = UI_BACKEND == "linoria" and "Linoria carregada (mobile friendly)." or "Rayfield carregada.",
+    content = "Linoria carregada (build 2.6).",
     duration = 4,
 })
 
-pcall(function()
-    Window:Popup({
-        title = "trident build 2.5",
-        subtitle = UI_BACKEND == "linoria" and "linoria" or "rayfield",
-        boxes = {
-            { title = "Silent aim", description = "Hook no createProjectile com predicao, FOV e checagem de visao." },
-            { title = "ESP completo", description = "Drawing quando existe, senao Highlight + Billboard." },
-            { title = "Mobile", description = "Mira fixa no centro, Chams e Objetos com orcamento de frame." },
-            { title = "Modo seguro", description = "Sem debug.getupvalues por padrao (o jogo loga Executed a script)." },
-        },
-        options = { { text = "Comecar", style = "primary" } },
-    })
-end)
+Log:once("ui", "ui: linoria")
 
 --=====================================================================
 -- 4. CAMADA DO JOGO (tudo com fallback)
@@ -1654,7 +1717,7 @@ loadCatalog()
 
 -- Modo seguro: evita debug.getupvalues/getconstants (o jogo loga
 -- "Executed a script" e tem TamperingDetected). Ligado por padrao.
-local SafeMode = { enabled = true }
+local SafeMode = { enabled = false }
 
 local ProjectileAim = {
     enabled = false,
@@ -3342,7 +3405,7 @@ TCombat:CreateToggle({
     name = "Modo seguro",
     description = "Ligado: nao usa debug.getupvalues nem debug.getconstants (o jogo loga Executed a script e tem TamperingDetected). Desligue so se o silent aim de projetil e o EntityMap forem necessarios.",
     flag = "safe_mode",
-    value = true,
+    value = false,
     callback = function(v)
         SafeMode.enabled = v
         if v then
