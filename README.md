@@ -24,6 +24,14 @@ Este build depende apenas de:
 
 Tudo passa por `pcall` com fallback: quando um path do jogo muda, o script avisa no console em vez de estourar.
 
+## Build 2.5 — UI Linoria (mobile) com Rayfield de reserva
+
+- A interface agora usa **Linoria** (`PyhTeT/avox.lol/main/Library.lua`, o mesmo da AV0X), que é a que se comporta melhor no celular: touch e drag nativos, sem depender de `MouseButton` como o Rayfield.
+- Não reescrevi controle nenhum: escrevi um **adaptador** com a mesma API que o script já usava (`CreateTab`, `CreateSection`, `CreateToggle`, `CreateSlider`, `CreateButton`, `CreateDropdown`, `CreateKeybind`, `CreateColorPicker`, `CreateInput`, `CreateLabel`, `CreateConsole`, `Notify`, `Popup`). Os 157 controles continuam iguais.
+- Layout de **uma coluna por aba** (um groupbox com scroll, com divisor e rótulo por seção). Uma coluna por seção estouraria a largura no celular.
+- Se a Linoria não carregar (executor sem `loadstring(HttpGet)`), cai sozinho no Rayfield Gen2. O log inicial mostra qual backend subiu (`ui: linoria` / `ui: rayfield`).
+- Testado nos dois backends no harness: Rayfield 157 elementos, Linoria 150 chamadas com 108 rótulos, 0 erros.
+
 ## Build 2.4 — modo seguro contra detecção + engenharia do AV0X
 
 - **Modo seguro (novo, ligado por padrão)**: o jogo tem `TamperingDetected` e loga `Executed a script` quando alguém usa `debug.getupvalues`/`debug.getconstants`. Com o modo seguro ligado, o `EntityMap` só é buscado por tabelas do `getgc(true)` e o silent aim de projetil recusa instalar (usa o silent aim normal). Desligando, libera os dois caminhos.
