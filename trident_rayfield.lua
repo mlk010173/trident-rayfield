@@ -16,6 +16,13 @@
       * ESP com dois backends: Drawing (PC/executor completo) e Highlight +
         BillboardGui (Arceus X / mobile, sem Drawing).
 
+    Build 2.3 (desofuscacao do Trident V4 + FPS booster):
+      * Perf: preset de performance com sombras off, render no
+        minimo, particulas off, efeitos de camera off, agua do
+        Terrain off e materiais 2022 off, com restauracao total.
+        Tecnica lida do Trident V4 (Fazma) desofuscado (ele carrega
+        o FPSBooster.lua do CasperFlyModz).
+
     Build 2.2 (mineracao de 86 repositorios publicos):
       * Silent aim de projetil: hook no createProjectile do
         RangedWeaponClient (getgc + debug.getconstants "ProjectileSpeed"),
@@ -225,7 +232,7 @@ Window:Notify({
 pcall(function()
     Window:Popup({
         title = "trident • rayfield gen2",
-        subtitle = "build 2.2",
+        subtitle = "build 2.3",
         boxes = {
             { title = "Silent aim", description = "Hook no modulo de camera do jogo ou em Camera.CFrame, com predicao, FOV e checagem de visao." },
             { title = "ESP completo", description = "Usa Drawing quando o executor tem; senao cai para Highlight + Billboard." },
@@ -2665,6 +2672,202 @@ addUpdater(function()
 end)
 
 --=====================================================================
+-- 12.7 PERFORMANCE (FPS booster) — extraido do Trident V4 (Fazma)
+--=====================================================================
+-- O V4 desofuscado carrega FPSBooster.lua (CasperFlyModz) para isso:
+-- GlobalShadows off, FogEnd alto, agua do Terrain zerada,
+-- settings().Rendering.QualityLevel = 1, MeshPartDetailLevel = Level04,
+-- particulas desligadas e MaterialService.Use2022Materials = false.
+-- Aqui esta reimplementado sem loadstring de terceiros.
+
+local Perf = {
+    shadows = false,
+    water = false,
+    render = false,
+    particles = false,
+    effects = false,
+    materials = false,
+    saved = {},
+    applied = {},
+}
+
+local function lighting()
+    return Lighting or game:GetService("Lighting")
+end
+
+local function terrain()
+    local ws = Workspace
+    if not ws then return nil end
+    local ok, t = pcall(function() return ws.Terrain end)
+    if ok then return t end
+    return nil
+end
+
+local function setSaved(key, value)
+    if Perf.saved[key] == nil then Perf.saved[key] = value end
+end
+
+function Perf.applyShadows(on)
+    local l = lighting()
+    if not l then return end
+    if on then
+        pcall(function()
+            setSaved("GlobalShadows", l.GlobalShadows)
+            setSaved("FogEnd", l.FogEnd)
+            setSaved("Brightness", l.Brightness)
+            l.GlobalShadows = false
+            l.FogEnd = 9e9
+        end)
+    elseif Perf.saved.GlobalShadows ~= nil then
+        pcall(function()
+            l.GlobalShadows = Perf.saved.GlobalShadows
+            l.FogEnd = Perf.saved.FogEnd
+        end)
+    end
+end
+
+function Perf.applyWater(on)
+    local t = terrain()
+    if not t then return end
+    local keys = { "WaterWaveSize", "WaterWaveSpeed", "WaterReflectance", "WaterTransparency" }
+    if on then
+        pcall(function()
+            for i = 1, #keys do
+                setSaved(keys[i], t[keys[i]])
+                t[keys[i]] = (keys[i] == "WaterTransparency") and 1 or 0
+            end
+        end)
+    else
+        pcall(function()
+            for i = 1, #keys do
+                if Perf.saved[keys[i]] ~= nil then t[keys[i]] = Perf.saved[keys[i]] end
+            end
+        end)
+    end
+end
+
+function Perf.applyRender(on)
+    if type(settings) ~= "function" then return end
+    local ok = pcall(function()
+        local rendering = settings().Rendering
+        if on then
+            setSaved("QualityLevel", rendering.QualityLevel)
+            rendering.QualityLevel = Enum.QualityLevel.Level01
+            if Enum.MeshPartDetailLevel then
+                rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
+            end
+        elseif Perf.saved.QualityLevel ~= nil then
+            rendering.QualityLevel = Perf.saved.QualityLevel
+        end
+    end)
+    return ok
+end
+
+function Perf.applyParticles(on)
+    local ws = Workspace
+    if not ws then return end
+    local classes = { "ParticleEmitter", "Trail", "Smoke", "Fire", "Sparkles" }
+    Perf.applied.particles = Perf.applied.particles or {}
+
+    if on then
+        pcall(function()
+            for _, d in ipairs(ws:GetDescendants()) do
+                for i = 1, #classes do
+                    if d:IsA(classes[i]) then
+                        if d.Enabled then
+                            Perf.applied.particles[d] = true
+                            d.Enabled = false
+                        end
+                        break
+                    end
+                end
+            end
+        end)
+    else
+        pcall(function()
+            for obj in pairs(Perf.applied.particles) do
+                pcall(function() obj.Enabled = true end)
+            end
+            Perf.applied.particles = {}
+        end)
+    end
+end
+
+local EFFECT_CLASSES = {
+    "BloomEffect", "BlurEffect", "SunRaysEffect", "DepthOfFieldEffect",
+}
+
+function Perf.applyEffects(on)
+    local l = lighting()
+    if not l then return end
+    Perf.applied.effects = Perf.applied.effects or {}
+    if on then
+        pcall(function()
+            for _, d in ipairs(l:GetChildren()) do
+                for i = 1, #EFFECT_CLASSES do
+                    if d:IsA(EFFECT_CLASSES[i]) and d.Enabled then
+                        Perf.applied.effects[d] = true
+                        d.Enabled = false
+                    end
+                end
+            end
+        end)
+    else
+        pcall(function()
+            for obj in pairs(Perf.applied.effects) do
+                pcall(function() obj.Enabled = true end)
+            end
+            Perf.applied.effects = {}
+        end)
+    end
+end
+
+function Perf.applyMaterials(on)
+    local ok = pcall(function()
+        local service = game:GetService("MaterialService")
+        if service then
+            if on then
+                setSaved("Use2022Materials", service.Use2022Materials)
+                if service.Use2022Materials ~= nil then service.Use2022Materials = false end
+            elseif Perf.saved.Use2022Materials ~= nil then
+                service.Use2022Materials = Perf.saved.Use2022Materials
+            end
+        end
+    end)
+    return ok
+end
+
+function Perf.set(name, value)
+    if name == "shadows" then Perf.applyShadows(value)
+    elseif name == "water" then Perf.applyWater(value)
+    elseif name == "render" then Perf.applyRender(value)
+    elseif name == "particles" then Perf.applyParticles(value)
+    elseif name == "effects" then Perf.applyEffects(value)
+    elseif name == "materials" then Perf.applyMaterials(value) end
+    Perf[name] = value
+end
+
+function Perf.restoreAll()
+    Perf.set("shadows", false)
+    Perf.set("water", false)
+    Perf.set("render", false)
+    Perf.set("particles", false)
+    Perf.set("effects", false)
+    Perf.set("materials", false)
+    Log:add("performance: tudo restaurado")
+end
+
+function Perf.applyPreset()
+    Perf.set("effects", true)
+    Perf.set("render", true)
+    Perf.set("shadows", true)
+    Perf.set("water", true)
+    Perf.set("particles", true)
+    Log:add("performance: preset FPS aplicado")
+end
+
+
+--=====================================================================
 -- 13. UI — COMBAT
 --=====================================================================
 TCombat:CreateSection({ name = "Aimbot / Silent aim" })
@@ -3243,6 +3446,72 @@ TWorld:CreateToggle({
         if not v then
             pcall(function() Lighting.FogEnd = LightingCache.FogEnd end)
         end
+    end,
+})
+
+TWorld:CreateSection({ name = "Performance (FPS booster)" })
+
+TWorld:CreateButton({
+    name = "Preset FPS (tudo)",
+    callback = function()
+        Perf.applyPreset()
+        Window:Notify({ title = "Performance", content = "Preset aplicado: sombras, agua, render, particulas e efeitos.", duration = 5 })
+    end,
+})
+
+TWorld:CreateToggle({
+    name = "Sem sombras",
+    description = "GlobalShadows = false e FogEnd alto (ganho grande no celular).",
+    flag = "perf_shadows",
+    value = false,
+    callback = function(v) Perf.set("shadows", v) end,
+})
+
+TWorld:CreateToggle({
+    name = "Render no minimo",
+    description = "QualityLevel Level01 e MeshPartDetailLevel Level04.",
+    flag = "perf_render",
+    value = false,
+    callback = function(v) Perf.set("render", v) end,
+})
+
+TWorld:CreateToggle({
+    name = "Sem particulas",
+    description = "Desliga ParticleEmitter, Trail, Smoke, Fire e Sparkles do mapa.",
+    flag = "perf_particles",
+    value = false,
+    callback = function(v) Perf.set("particles", v) end,
+})
+
+TWorld:CreateToggle({
+    name = "Sem efeitos de camera",
+    description = "Bloom, Blur, SunRays e DepthOfField. Nao mexe no gamma do script.",
+    flag = "perf_effects",
+    value = false,
+    callback = function(v) Perf.set("effects", v) end,
+})
+
+TWorld:CreateToggle({
+    name = "Agua do Terrain off",
+    description = "WaterWaveSize, WaveSpeed, Reflectance e Transparency.",
+    flag = "perf_water",
+    value = false,
+    callback = function(v) Perf.set("water", v) end,
+})
+
+TWorld:CreateToggle({
+    name = "Materiais 2022 off",
+    description = "MaterialService.Use2022Materials = false (menos custo de shader).",
+    flag = "perf_materials",
+    value = false,
+    callback = function(v) Perf.set("materials", v) end,
+})
+
+TWorld:CreateButton({
+    name = "Restaurar performance",
+    callback = function()
+        Perf.restoreAll()
+        Window:Notify({ title = "Performance", content = "Configuracoes originais restauradas.", duration = 4 })
     end,
 })
 
@@ -3921,6 +4190,7 @@ local function liftoff()
 
     Esp.enabled = false
     Farm.enabled, Farm.killAura = false, false
+    pcall(function() Perf.restoreAll() end)
     ProjectileAim.enabled = false
     Dash.enabled = false
     if Dash.active then dashStop() end
@@ -3958,7 +4228,7 @@ getgenv = getgenv or function() return _G end
 local genv = getgenv()
 if type(genv) == "table" then
     genv.trident_unload = liftoff
-    genv.trident = { Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Catalog = Catalog, Farm = Farm, ProjectileAim = ProjectileAim, Dash = Dash, Window = Window }
+    genv.trident = { Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Catalog = Catalog, Farm = Farm, ProjectileAim = ProjectileAim, Dash = Dash, Perf = Perf, Window = Window }
 end
 
 --=====================================================================
