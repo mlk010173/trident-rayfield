@@ -24,6 +24,15 @@ Este build depende apenas de:
 
 Tudo passa por `pcall` com fallback: quando um path do jogo muda, o script avisa no console em vez de estourar.
 
+## Build 2.6 — só Linoria, layout do AV0X
+
+- **Rayfield removido.** A UI é 100% Linoria; se ela não carregar, o script para com mensagem clara em vez de trocar de biblioteca.
+- **Layout dos prints**: abas Combat, ESP, Visuals, Movement, Objetos e UI Settings, com as seções em **duas colunas** (groupbox esquerdo/direito alternando), divisor e título por seção.
+- **Configuration** e **Theme** vindos dos addons oficiais da Linoria (`SaveManager.lua` / `ThemeManager.lua`): nome da config, criar, lista, carregar e sobrescrever.
+- **Watermark** com `FPS` e `Ping` no topo, no estilo `trident | FPS: 60 | Ping: 40ms`.
+- **Modo seguro desligado por padrão**: o silent aim de projétil (hookfunction no `createProjectile`) e o EntityMap via `debug.getupvalues` sobem sem pedir nada. O toggle continua na aba Combat para quem quiser o perfil discreto.
+- Testes no harness: 183 elementos, 0 erros, hook instalado redirecionando 3 tiros de teste, dash com 2 pacotes TCP e 156 controles com rótulo na Linoria.
+
 ## Build 2.5 — UI Linoria (mobile) com Rayfield de reserva
 
 - A interface agora usa **Linoria** (`PyhTeT/avox.lol/main/Library.lua`, o mesmo da AV0X), que é a que se comporta melhor no celular: touch e drag nativos, sem depender de `MouseButton` como o Rayfield.
