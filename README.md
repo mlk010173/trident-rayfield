@@ -153,3 +153,10 @@ Uso em servidor público viola os Termos de Serviço do Roblox e pode resultar e
 - `free_trident.lua` e bibliotecas: [SWIMHUBISWIMMING/swimhub](https://github.com/SWIMHUBISWIMMING/swimhub)
 - Silent aim por override de câmera, ore ESP, grab all: [Babyhamsta/RBLX_Scripts](https://github.com/Babyhamsta/RBLX_Scripts)
 - Interface: [Rayfield Gen2](https://sirius.menu/gen2)
+
+## Build 2.7
+
+Pacote AV0X integrado: containers `default`/`box`/`trash`, zonas `SafeZones` /
+`NoBuildZones`, veiculos em `Shared.entities.vehicles` e arm chams no
+`workspace.Const.Ignore.FPSArms`. Fonte em `deob/AV0X_reconstructed.lua`
+(522 linhas reconstruidas da VM) e `deob/AV0X_trace.txt`.

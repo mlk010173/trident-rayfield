@@ -76,3 +76,39 @@ Na prática o caminho do AV0X (VM + Linoria) é pior para mobile e para manuten�
 O que valeu copiar foi a ideia do `SaveManager` (autoload de config) e o
 `ThemeManager` (registro de cores), que o nosso já cobre via `salvar config` e o
 Controle de cores do Rayfield.
+
+## Quebra da VM (build 2.7)
+
+O AV0X nao fica mais como caixa preta: a VM WeAreDevs foi executada de verdade e
+o trace reconstruiu 522 linhas de Lua legivel (`deob/AV0X_reconstructed.lua`,
+trace cru em `deob/AV0X_trace.txt`).
+
+Como foi feito:
+1. Lua 5.1 e Luau compilados na sandbox.
+2. Desofuscador Prometheus (WeAreDevs) adaptado para rodar sob Luau: `debug.sethook`,
+   `loadfile`/`io` e `arg` emulados, entrada embutida via `INPUT_SRC`.
+3. A VM morria em `game.PlaceId`. Ela faz `LocalPlayer:Kick("Game not support!")`
+   quando o PlaceId nao e o do jogo. PlaceId correto: **13253735473**.
+4. Com o PlaceId forjado e `game.HttpGet` devolvendo uma library universal (stub),
+   a VM abriu e o tracer passou a registrar as operacoes reais.
+
+### O que o trace revelou
+
+- UI: o AV0X usa **Obsidian** (`deividcomsono/Obsidian/main/Library.lua` +
+  `addons/ThemeManager.lua` + `addons/SaveManager.lua`), nao Linoria.
+- Bracos: `workspace.Const.Ignore.FPSArms.HandModel` com as pecas `DefaultSight`,
+  `Barrel`, `Body`, `ChargingHandle`, `Decals`, `Mag`, `Rails`, `ShoulderPad`, `Stock`.
+- Containers: `Model` com filho `"default"` e partes `box` / `trash` (MeshPart),
+  rotulo `DefaultBox` / `Box` / `Trash` em `230,182,0`.
+- Zonas: `workspace.World.Zones.SafeZones` (verde) e `NoBuildZones` (vermelho).
+- Veiculos: `ReplicatedStorage.Shared.entities.vehicles` (ex. `Helicopter`,
+  rotulo verde tamanho 14).
+- FOV: dois `Drawing.new("Circle")`, raio 150, azul, ZIndex 999/998.
+- Paleta de itens: laranja `255,100,0`, azul `0,150,255`, verde `0,255,0`,
+  amarelo `200,200,0`, rosa `255,0,207`.
+- ESP usa ScreenGui `ESPHolder` em `PlayerGui` (ResetOnSpawn false) e
+  `Drawing.new("Text")` com `Font 2`, `Center`, contorno preto.
+
+O que o trace nao entrega: os remotes (o trace para no carregamento da UI e nos
+loops de render; nao ha `FireServer` no caminho executado). O protocolo TCP do
+Trident segue o mapeado na build 2.2 (`10 Swing`, `10 Hit`, `23` chat, `2`/`3` slide).

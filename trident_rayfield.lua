@@ -16,6 +16,19 @@
       * ESP com dois backends: Drawing (PC/executor completo) e Highlight +
         BillboardGui (Arceus X / mobile, sem Drawing).
 
+    Build 2.7 (pacote AV0X extraido do trace da VM):
+      * Containers: Model com filho "default" e partes box/trash (padrao AV0X),
+        rotulo Box/Trash em amarelo 230,182,0.
+      * Zonas: workspace.World.Zones.SafeZones (SAFE verde) e NoBuildZones
+        (NO BUILD vermelho).
+      * Veiculos: ReplicatedStorage.Shared.entities.vehicles, rotulo com o nome
+        do veiculo (Helicopter etc.) em verde.
+      * Arm chams: pinta HandModel do workspace.Const.Ignore.FPSArms
+        (DefaultSight, Barrel, Body, ChargingHandle, Decals, Mag, Rails,
+        ShoulderPad, Stock) com material configuravel.
+      * Fonte: deob/AV0X_reconstructed.lua (522 linhas reconstruidas da VM
+        WeAreDevs executada em Luau real; ver deob/AV0X.md).
+
     Build 2.6 (somente Linoria, layout do AV0X):
       * Rayfield removido: a UI e so Linoria. Se a Linoria nao carregar o
         script para com mensagem clara em vez de trocar de biblioteca.
@@ -2686,6 +2699,275 @@ addUpdater(function(dt)
     updateWorldFx(dt)
 end)
 
+
+--=====================================================================
+-- 9.6 PACOTE AV0X (extraido do trace da VM: containers default/box/trash,
+-- zonas safe/no-build, veiculos e arm chams do FPSArms)
+--=====================================================================
+local Avox = {
+    containers = false,
+    zones = false,
+    vehicles = false,
+    arm_chams = false,
+    arm_material = "ForceField",
+    arm_color = Color3.fromRGB(0, 0, 255),
+    labels = {},
+    parts_touched = {},
+    t = 0,
+}
+
+local AVOX = {
+    box = Color3.fromRGB(230, 182, 0),
+    safe = Color3.fromRGB(0, 255, 0),
+    nobuild = Color3.fromRGB(255, 0, 0),
+    vehicle = Color3.fromRGB(0, 255, 0),
+}
+
+-- pecas que o AV0X pinta em workspace.Const.Ignore.FPSArms.HandModel
+local ARM_PARTS = {
+    DefaultSight = true, Barrel = true, Body = true, ChargingHandle = true,
+    Decals = true, Mag = true, Rails = true, ShoulderPad = true, Stock = true,
+}
+
+local function avoxLabel(key, text, color, size)
+    if type(Drawing) ~= "table" then return nil end
+    local l = Avox.labels[key]
+    if not l then
+        local ok, obj = pcall(function()
+            return newDrawing("Text", {
+                Size = size or 10,
+                Center = true,
+                Outline = true,
+                Font = 2,
+                Color = color,
+                OutlineColor = Color3.new(0, 0, 0),
+                Visible = false,
+            })
+        end)
+        if not ok or not obj then return nil end
+        l = obj
+        Avox.labels[key] = l
+    end
+    l.Text = text
+    l.Color = color
+    return l
+end
+
+local function avoxIsVector(v)
+    if v == nil then return false end
+    if type(typeof) == "function" then
+        local ok, t = pcall(typeof, v)
+        if ok and t == "Vector3" then return true end
+    end
+    local okType, plain = pcall(type, v)
+    if okType and plain == "table" then
+        local okX = pcall(function() return v.X ~= nil and v.Y ~= nil and v.Z ~= nil end)
+        if okX then return true end
+    end
+    return false
+end
+
+
+local function avoxFirstPart(model)
+    if model == nil then return nil end
+    local okPart, direct = pcall(function() return model:IsA("BasePart") end)
+    if okPart and direct then return model end
+    local ok, found = pcall(function() return model:FindFirstChildWhichIsA("BasePart", true) end)
+    if ok and found then return found end
+    local okList, kids = pcall(function() return model:GetDescendants() end)
+    if okList and type(kids) == "table" then
+        for _, kid in ipairs(kids) do
+            local okIs, isPart = pcall(function() return kid:IsA("BasePart") end)
+            if okIs and isPart then return kid end
+        end
+    end
+    return nil
+end
+
+local function avoxPosition(part)
+    local ok, pos = pcall(function()
+        local p = part.Position
+        return p
+    end)
+    if ok and avoxIsVector(pos) then return pos end
+    local ok2, pivot = pcall(function() return part:GetPivot().Position end)
+    if ok2 then return pivot end
+    return nil
+end
+
+-- container do AV0X: Model com filho "default" e partes box/trash (MeshPart)
+local function isAvoxContainer(model)
+    local ok, ok2 = pcall(function()
+        if not model:IsA("Model") then return false end
+        if not model:FindFirstChild("default") then return false end
+        return true
+    end)
+    return ok and ok2 == true
+end
+
+local function avoxContainerLabel(model, index)
+    local box = model:FindFirstChild("box", true)
+    local trash = model:FindFirstChild("trash", true)
+    local text = "DefaultBox"
+    if box then
+        text = "Box"
+    elseif trash then
+        text = "Trash"
+    end
+    local pos = avoxPosition(box or trash or avoxFirstPart(model) or model)
+    return text, pos
+end
+
+local function avoxCleanup(keys)
+    for key, label in pairs(Avox.labels) do
+        local keep = false
+        for _, k in ipairs(keys) do
+            if key == k or key:sub(1, #k) == k then keep = true break end
+        end
+        if not keep then
+            pcall(function() label.Visible = false end)
+        end
+    end
+end
+
+local function avoxDraw(key, text, pos, color, size, cam)
+    local label = avoxLabel(key, text, color, size)
+    if not label or not pos then return end
+    local ok, screen, onScreen = pcall(function()
+        local v, vis = projectPoint(pos)
+        return v, vis
+    end)
+    if not ok or not screen or not onScreen then
+        pcall(function() label.Visible = false end)
+        return
+    end
+    pcall(function()
+        label.Position = screen
+        label.Visible = true
+    end)
+end
+
+local function avoxArmChams()
+    local parts = {}
+    local ok = pcall(function()
+        local const = Workspace:FindFirstChild("Const")
+        local ignore = const and const:FindFirstChild("Ignore")
+        local arms = ignore and ignore:FindFirstChild("FPSArms")
+        if not arms then return end
+        for _, part in ipairs(arms:GetDescendants()) do
+            if part:IsA("BasePart") and ARM_PARTS[part.Name] then
+                parts[#parts + 1] = part
+            end
+        end
+    end)
+    if not ok then return end
+    local mat = Avox.arm_material
+    for _, part in ipairs(parts) do
+        pcall(function()
+            if mat and Enum.Material[mat] then part.Material = Enum.Material[mat] end
+            part.Color = Avox.arm_color
+        end)
+        Avox.parts_touched[part] = true
+    end
+end
+
+local function avoxRestoreArms()
+    for part in pairs(Avox.parts_touched) do
+        pcall(function()
+            if part and part.Parent then
+                part.Material = Enum.Material.Plastic
+            end
+        end)
+    end
+    Avox.parts_touched = {}
+end
+
+local function updateAvox(dt)
+    Avox.t = Avox.t + (dt or 0)
+    if Avox.t < 0.35 then return end
+    Avox.t = 0
+    local n = 0
+
+    if Avox.containers then
+        pcall(function()
+            for _, model in ipairs(Workspace:GetChildren()) do
+                if isAvoxContainer(model) then
+                    n = n + 1
+                    local text, pos = avoxContainerLabel(model, n)
+                    if pos then
+                        avoxDraw("ctn_" .. tostring(n), text, pos + Vector3.new(0, 2, 0), AVOX.box, 10)
+                    end
+                end
+            end
+        end)
+    end
+
+    if Avox.zones then
+        pcall(function()
+            local world = Workspace:FindFirstChild("World")
+            local zones = world and world:FindFirstChild("Zones")
+            if not zones then return end
+            local safe = zones:FindFirstChild("SafeZones")
+            if safe then
+                for i, model in ipairs(safe:GetChildren()) do
+                    local pos = avoxPosition(avoxFirstPart(model) or model)
+                    if pos then
+                        avoxDraw("safe_" .. tostring(i), "SAFE", pos + Vector3.new(0, 4, 0), AVOX.safe, 12)
+                    end
+                end
+            end
+            local nob = zones:FindFirstChild("NoBuildZones")
+            if nob then
+                for i, model in ipairs(nob:GetChildren()) do
+                    local pos = avoxPosition(avoxFirstPart(model) or model)
+                    if pos then
+                        avoxDraw("nob_" .. tostring(i), "NO BUILD", pos + Vector3.new(0, 4, 0), AVOX.nobuild, 12)
+                    end
+                end
+            end
+        end)
+    end
+
+    if Avox.vehicles then
+        pcall(function()
+            local shared = ReplicatedStorage:FindFirstChild("Shared")
+            local entities = shared and shared:FindFirstChild("entities")
+            local vehicles = entities and entities:FindFirstChild("vehicles")
+            if not vehicles then return end
+            local types = {}
+            for _, v in ipairs(vehicles:GetChildren()) do
+                types[#types + 1] = v.Name
+            end
+            for _, model in ipairs(Workspace:GetChildren()) do
+                local found = nil
+                for _, name in ipairs(types) do
+                    if model.Name == name then
+                        found = name
+                        break
+                    end
+                    local okChild, child = pcall(function() return model:FindFirstChild(name) end)
+                    if okChild and child then
+                        found = name
+                        break
+                    end
+                end
+                if found then
+                    local pos = avoxPosition(avoxFirstPart(model) or model)
+                    if pos then
+                        avoxDraw("veh_" .. tostring(model), found, pos + Vector3.new(0, 4, 0), AVOX.vehicle, 14)
+                    end
+                end
+            end
+        end)
+    end
+
+    if Avox.arm_chams then
+        avoxArmChams()
+    end
+end
+
+addSlow(function() updateAvox(0.35) end)
+
 --=====================================================================
 -- 10. FEATURES DE MOVIMENTO / EXPLOITS
 --=====================================================================
@@ -4204,6 +4486,32 @@ TMove:CreateSlider({
 --=====================================================================
 -- 16.5 UI — OBJETOS DO MUNDO
 --=====================================================================
+TObj:CreateSection({ name = "AV0X (containers, zonas, veiculos)" })
+
+TObj:CreateToggle({
+    name = "Containers AV0X (default/box/trash)",
+    flag = "avox_containers",
+    value = false,
+    description = "Detecta Model com filho 'default' e partes box/trash, como o AV0X.",
+    callback = function(v) Avox.containers = v end,
+})
+
+TObj:CreateToggle({
+    name = "Zonas (safe zone / no build)",
+    flag = "avox_zones",
+    value = false,
+    description = "Marca workspace.World.Zones.SafeZones e NoBuildZones.",
+    callback = function(v) Avox.zones = v end,
+})
+
+TObj:CreateToggle({
+    name = "Veiculos (helicoptero)",
+    flag = "avox_vehicles",
+    value = false,
+    description = "Le ReplicatedStorage.Shared.entities.vehicles e marca o modelo correspondente.",
+    callback = function(v) Avox.vehicles = v end,
+})
+
 TObj:CreateSection({ name = "Containers e itens" })
 
 TObj:CreateToggle({

@@ -1,0 +1,807 @@
+--- DEOBFUSCATION REPORT ---
+File: /tmp/avox.lua
+
+--- TRACE ---
+ACCESSED --> game
+ACCESSED --> game.PlaceId = 13253735473
+ACCESSED --> game.HttpGet
+CALL_RESULT --> local trace_1 = game.HttpGet(game, "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua")
+LOADSTRING --> " local mt; mt = {__index=function(t,k) local o=setmetatable({},mt); rawset(t,k,o); return o end, __call=function() return setmetatable({},mt) end, __newindex=function(t,k,v) rawset(t,k,v) end, __tostring=function() return 'stub' end, __add=function() return 0 end, __sub=function() return 0 end, __mul=function() return 0 end, __div=function() return 0 end, __lt=function() return false end, __le=function() return false end, __eq=function(a,b) return rawequal(a,b) end} return setmetatable({}, mt) "
+CALL_RESULT --> local trace_2 = game.HttpGet(game, "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua")
+LOADSTRING --> " local mt; mt = {__index=function(t,k) local o=setmetatable({},mt); rawset(t,k,o); return o end, __call=function() return setmetatable({},mt) end, __newindex=function(t,k,v) rawset(t,k,v) end, __tostring=function() return 'stub' end, __add=function() return 0 end, __sub=function() return 0 end, __mul=function() return 0 end, __div=function() return 0 end, __lt=function() return false end, __le=function() return false end, __eq=function(a,b) return rawequal(a,b) end} return setmetatable({}, mt) "
+CALL_RESULT --> local trace_3 = game.HttpGet(game, "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua")
+LOADSTRING --> " local mt; mt = {__index=function(t,k) local o=setmetatable({},mt); rawset(t,k,o); return o end, __call=function() return setmetatable({},mt) end, __newindex=function(t,k,v) rawset(t,k,v) end, __tostring=function() return 'stub' end, __add=function() return 0 end, __sub=function() return 0 end, __mul=function() return 0 end, __div=function() return 0 end, __lt=function() return false end, __le=function() return false end, __eq=function(a,b) return rawequal(a,b) end} return setmetatable({}, mt) "
+ACCESSED --> game.GetService
+CALL_RESULT --> local trace_4 = game.GetService(game, "RunService")
+CALL_RESULT --> local trace_5 = game.GetService(game, "Players")
+CALL_RESULT --> local trace_6 = game.GetService(game, "Stats")
+CALL_RESULT --> local trace_7 = game.GetService(game, "UserInputService")
+CALL_RESULT --> local trace_8 = game.GetService(game, "Debris")
+CALL_RESULT --> local trace_9 = game.GetService(game, "Lighting")
+CALL_RESULT --> local trace_10 = game.GetService(game, "ReplicatedStorage")
+ACCESSED --> workspace
+ACCESSED --> workspace.CurrentCamera
+ACCESSED --> trace_5.LocalPlayer
+ACCESSED --> Color3
+ACCESSED --> Color3.fromRGB
+CALL_RESULT --> local trace_11 = Color3.fromRGB(0, 0, 255)
+ACCESSED --> workspace.ChildAdded
+ACCESSED --> workspace.ChildAdded.Connect
+CALL_RESULT --> local trace_12 = workspace.ChildAdded.Connect(workspace.ChildAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildAdded.Connect ---
+CLOSURE_ARGS --> callback1_arg1, callback1_arg2, callback1_arg3, callback1_arg4
+--- EXITING CLOSURE FOR workspace.ChildAdded.Connect ---
+ACCESSED --> workspace.ChildRemoved
+ACCESSED --> workspace.ChildRemoved.Connect
+CALL_RESULT --> local trace_13 = workspace.ChildRemoved.Connect(workspace.ChildRemoved, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CLOSURE_ARGS --> callback2_arg1, callback2_arg2, callback2_arg3, callback2_arg4
+--- EXITING CLOSURE FOR workspace.ChildRemoved.Connect ---
+ACCESSED --> trace_5.LocalPlayer.CharacterAdded
+ACCESSED --> trace_5.LocalPlayer.CharacterAdded.Connect
+CALL_RESULT --> local trace_14 = trace_5.LocalPlayer.CharacterAdded.Connect(trace_5.LocalPlayer.CharacterAdded, function(...) end)
+--- ENTERING CLOSURE FOR trace_5.LocalPlayer.CharacterAdded.Connect ---
+CLOSURE_ARGS --> callback3_arg1, callback3_arg2, callback3_arg3, callback3_arg4
+ACCESSED --> task
+ACCESSED --> task.delay
+CALL_RESULT --> local trace_15 = task.delay(0.10000000000000001, function(...) end)
+--- ENTERING CLOSURE FOR task.delay ---
+CLOSURE_ARGS --> callback4_arg1, callback4_arg2, callback4_arg3, callback4_arg4
+--- EXITING CLOSURE FOR task.delay ---
+--- EXITING CLOSURE FOR trace_5.LocalPlayer.CharacterAdded.Connect ---
+CALL_RESULT --> local trace_16 = Color3.fromRGB(0, 0, 255)
+ACCESSED --> trace_4.RenderStepped
+ACCESSED --> trace_4.RenderStepped.Connect
+CALL_RESULT --> local trace_17 = trace_4.RenderStepped.Connect(trace_4.RenderStepped, function(...) end)
+--- ENTERING CLOSURE FOR trace_4.RenderStepped.Connect ---
+CLOSURE_ARGS --> callback5_arg1, callback5_arg2, callback5_arg3, callback5_arg4
+--- EXITING CLOSURE FOR trace_4.RenderStepped.Connect ---
+CALL_RESULT --> local trace_18 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_19 = Color3.fromRGB(0, 0, 255)
+ACCESSED --> Drawing
+ACCESSED --> Drawing.new
+CALL_RESULT --> local trace_20 = Drawing.new("Circle")
+CALL_RESULT --> local trace_21 = Drawing.new("Circle")
+PROP_SET --> trace_20.Thickness = 1
+PROP_SET --> trace_20.NumSides = 64
+PROP_SET --> trace_20.Radius = 150
+PROP_SET --> trace_20.Filled = false
+PROP_SET --> trace_20.Visible = false
+PROP_SET --> trace_20.Transparency = 1
+PROP_SET --> trace_20.Color = trace_18
+PROP_SET --> trace_20.ZIndex = 999
+PROP_SET --> trace_21.Thickness = 0
+PROP_SET --> trace_21.NumSides = 64
+PROP_SET --> trace_21.Radius = 150
+PROP_SET --> trace_21.Filled = true
+PROP_SET --> trace_21.Visible = false
+PROP_SET --> trace_21.Transparency = 0.29999999999999999
+PROP_SET --> trace_21.Color = trace_19
+PROP_SET --> trace_21.ZIndex = 998
+ACCESSED --> workspace.CurrentCamera.ViewportSize
+ACCESSED --> Vector2
+ACCESSED --> Vector2.new
+ACCESSED --> workspace.CurrentCamera.ViewportSize.X
+ACCESSED --> workspace.CurrentCamera.ViewportSize.Y
+CALL_RESULT --> local trace_22 = Vector2.new((workspace.CurrentCamera.ViewportSize.X/2), (workspace.CurrentCamera.ViewportSize.Y/2))
+PROP_SET --> trace_20.Position = trace_22
+PROP_SET --> trace_21.Position = trace_22
+ACCESSED --> workspace.CurrentCamera.GetPropertyChangedSignal
+CALL_RESULT --> local trace_23 = workspace.CurrentCamera.GetPropertyChangedSignal(workspace.CurrentCamera, "ViewportSize")
+ACCESSED --> trace_23.Connect
+CALL_RESULT --> local trace_24 = trace_23.Connect(trace_23, function(...) end)
+--- ENTERING CLOSURE FOR trace_23.Connect ---
+CLOSURE_ARGS --> callback6_arg1, callback6_arg2, callback6_arg3, callback6_arg4
+CALL_RESULT --> local trace_25 = Vector2.new((workspace.CurrentCamera.ViewportSize.X/2), (workspace.CurrentCamera.ViewportSize.Y/2))
+PROP_SET --> trace_20.Position = trace_25
+PROP_SET --> trace_21.Position = trace_25
+--- EXITING CLOSURE FOR trace_23.Connect ---
+ACCESSED --> task.spawn
+CALL_RESULT --> local trace_26 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback7_arg1, callback7_arg2, callback7_arg3, callback7_arg4
+ACCESSED --> task.wait
+CALL_RESULT --> local trace_27 = task.wait(0.20000000000000001)
+ACCESSED --> workspace.FindFirstChild
+CALL_RESULT --> local trace_28 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_28.FindFirstChild
+CALL_RESULT --> local trace_29 = trace_28.FindFirstChild(trace_28, "Ignore")
+ACCESSED --> trace_29.FindFirstChild
+CALL_RESULT --> local trace_30 = trace_29.FindFirstChild(trace_29, "FPSArms")
+ACCESSED --> trace_30.FindFirstChild
+CALL_RESULT --> local trace_31 = trace_30.FindFirstChild(trace_30, "HandModel")
+ACCESSED --> trace_31.FindFirstChild
+CALL_RESULT --> local trace_32 = trace_31.FindFirstChild(trace_31, "DefaultSight", true)
+CALL_RESULT --> local trace_33 = trace_31.FindFirstChild(trace_31, "Barrel", true)
+CALL_RESULT --> local trace_34 = trace_31.FindFirstChild(trace_31, "Body", true)
+CALL_RESULT --> local trace_35 = trace_31.FindFirstChild(trace_31, "ChargingHandle", true)
+CALL_RESULT --> local trace_36 = trace_31.FindFirstChild(trace_31, "Decals", true)
+CALL_RESULT --> local trace_37 = trace_31.FindFirstChild(trace_31, "Mag", true)
+CALL_RESULT --> local trace_38 = trace_31.FindFirstChild(trace_31, "Rails", true)
+CALL_RESULT --> local trace_39 = trace_31.FindFirstChild(trace_31, "ShoulderPad", true)
+CALL_RESULT --> local trace_40 = trace_31.FindFirstChild(trace_31, "Stock", true)
+CALL_RESULT --> local trace_41 = task.wait(0.20000000000000001)
+CALL_RESULT --> local trace_42 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_42.FindFirstChild
+CALL_RESULT --> local trace_43 = trace_42.FindFirstChild(trace_42, "Ignore")
+ACCESSED --> trace_43.FindFirstChild
+CALL_RESULT --> local trace_44 = trace_43.FindFirstChild(trace_43, "FPSArms")
+ACCESSED --> trace_44.FindFirstChild
+CALL_RESULT --> local trace_45 = trace_44.FindFirstChild(trace_44, "HandModel")
+ACCESSED --> trace_45.FindFirstChild
+CALL_RESULT --> local trace_46 = trace_45.FindFirstChild(trace_45, "DefaultSight", true)
+CALL_RESULT --> local trace_47 = trace_45.FindFirstChild(trace_45, "Barrel", true)
+CALL_RESULT --> local trace_48 = trace_45.FindFirstChild(trace_45, "Body", true)
+CALL_RESULT --> local trace_49 = trace_45.FindFirstChild(trace_45, "ChargingHandle", true)
+CALL_RESULT --> local trace_50 = trace_45.FindFirstChild(trace_45, "Decals", true)
+CALL_RESULT --> local trace_51 = trace_45.FindFirstChild(trace_45, "Mag", true)
+CALL_RESULT --> local trace_52 = trace_45.FindFirstChild(trace_45, "Rails", true)
+CALL_RESULT --> local trace_53 = trace_45.FindFirstChild(trace_45, "ShoulderPad", true)
+CALL_RESULT --> local trace_54 = trace_45.FindFirstChild(trace_45, "Stock", true)
+CALL_RESULT --> local trace_55 = task.wait(0.20000000000000001)
+CALL_RESULT --> local trace_56 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_56.FindFirstChild
+CALL_RESULT --> local trace_57 = trace_56.FindFirstChild(trace_56, "Ignore")
+ACCESSED --> trace_57.FindFirstChild
+CALL_RESULT --> local trace_58 = trace_57.FindFirstChild(trace_57, "FPSArms")
+ACCESSED --> trace_58.FindFirstChild
+CALL_RESULT --> local trace_59 = trace_58.FindFirstChild(trace_58, "HandModel")
+ACCESSED --> trace_59.FindFirstChild
+CALL_RESULT --> local trace_60 = trace_59.FindFirstChild(trace_59, "DefaultSight", true)
+CALL_RESULT --> local trace_61 = trace_59.FindFirstChild(trace_59, "Barrel", true)
+CALL_RESULT --> local trace_62 = trace_59.FindFirstChild(trace_59, "Body", true)
+CALL_RESULT --> local trace_63 = trace_59.FindFirstChild(trace_59, "ChargingHandle", true)
+CALL_RESULT --> local trace_64 = trace_59.FindFirstChild(trace_59, "Decals", true)
+CALL_RESULT --> local trace_65 = trace_59.FindFirstChild(trace_59, "Mag", true)
+CALL_RESULT --> local trace_66 = trace_59.FindFirstChild(trace_59, "Rails", true)
+CALL_RESULT --> local trace_67 = trace_59.FindFirstChild(trace_59, "ShoulderPad", true)
+CALL_RESULT --> local trace_68 = trace_59.FindFirstChild(trace_59, "Stock", true)
+CALL_RESULT --> local trace_69 = task.wait(0.20000000000000001)
+CALL_RESULT --> local trace_70 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_70.FindFirstChild
+CALL_RESULT --> local trace_71 = trace_70.FindFirstChild(trace_70, "Ignore")
+ACCESSED --> trace_71.FindFirstChild
+CALL_RESULT --> local trace_72 = trace_71.FindFirstChild(trace_71, "FPSArms")
+ACCESSED --> trace_72.FindFirstChild
+CALL_RESULT --> local trace_73 = trace_72.FindFirstChild(trace_72, "HandModel")
+ACCESSED --> trace_73.FindFirstChild
+CALL_RESULT --> local trace_74 = trace_73.FindFirstChild(trace_73, "DefaultSight", true)
+CALL_RESULT --> local trace_75 = trace_73.FindFirstChild(trace_73, "Barrel", true)
+CALL_RESULT --> local trace_76 = trace_73.FindFirstChild(trace_73, "Body", true)
+CALL_RESULT --> local trace_77 = trace_73.FindFirstChild(trace_73, "ChargingHandle", true)
+CALL_RESULT --> local trace_78 = trace_73.FindFirstChild(trace_73, "Decals", true)
+CALL_RESULT --> local trace_79 = trace_73.FindFirstChild(trace_73, "Mag", true)
+CALL_RESULT --> local trace_80 = trace_73.FindFirstChild(trace_73, "Rails", true)
+CALL_RESULT --> local trace_81 = trace_73.FindFirstChild(trace_73, "ShoulderPad", true)
+CALL_RESULT --> local trace_82 = trace_73.FindFirstChild(trace_73, "Stock", true)
+CALL_RESULT --> local trace_83 = task.wait(0.20000000000000001)
+CALL_RESULT --> local trace_84 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_84.FindFirstChild
+CALL_RESULT --> local trace_85 = trace_84.FindFirstChild(trace_84, "Ignore")
+ACCESSED --> trace_85.FindFirstChild
+CALL_RESULT --> local trace_86 = trace_85.FindFirstChild(trace_85, "FPSArms")
+ACCESSED --> trace_86.FindFirstChild
+CALL_RESULT --> local trace_87 = trace_86.FindFirstChild(trace_86, "HandModel")
+ACCESSED --> trace_87.FindFirstChild
+CALL_RESULT --> local trace_88 = trace_87.FindFirstChild(trace_87, "DefaultSight", true)
+CALL_RESULT --> local trace_89 = trace_87.FindFirstChild(trace_87, "Barrel", true)
+CALL_RESULT --> local trace_90 = trace_87.FindFirstChild(trace_87, "Body", true)
+CALL_RESULT --> local trace_91 = trace_87.FindFirstChild(trace_87, "ChargingHandle", true)
+CALL_RESULT --> local trace_92 = trace_87.FindFirstChild(trace_87, "Decals", true)
+CALL_RESULT --> local trace_93 = trace_87.FindFirstChild(trace_87, "Mag", true)
+CALL_RESULT --> local trace_94 = trace_87.FindFirstChild(trace_87, "Rails", true)
+CALL_RESULT --> local trace_95 = trace_87.FindFirstChild(trace_87, "ShoulderPad", true)
+CALL_RESULT --> local trace_96 = trace_87.FindFirstChild(trace_87, "Stock", true)
+CALL_RESULT --> local trace_97 = task.wait(0.20000000000000001)
+CALL_RESULT --> local trace_98 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_98.FindFirstChild
+CALL_RESULT --> local trace_99 = trace_98.FindFirstChild(trace_98, "Ignore")
+ACCESSED --> trace_99.FindFirstChild
+CALL_RESULT --> local trace_100 = trace_99.FindFirstChild(trace_99, "FPSArms")
+ACCESSED --> trace_100.FindFirstChild
+CALL_RESULT --> local trace_101 = trace_100.FindFirstChild(trace_100, "HandModel")
+ACCESSED --> trace_101.FindFirstChild
+CALL_RESULT --> local trace_102 = trace_101.FindFirstChild(trace_101, "DefaultSight", true)
+CALL_RESULT --> local trace_103 = trace_101.FindFirstChild(trace_101, "Barrel", true)
+CALL_RESULT --> local trace_104 = trace_101.FindFirstChild(trace_101, "Body", true)
+CALL_RESULT --> local trace_105 = trace_101.FindFirstChild(trace_101, "ChargingHandle", true)
+CALL_RESULT --> local trace_106 = trace_101.FindFirstChild(trace_101, "Decals", true)
+CALL_RESULT --> local trace_107 = trace_101.FindFirstChild(trace_101, "Mag", true)
+CALL_RESULT --> local trace_108 = trace_101.FindFirstChild(trace_101, "Rails", true)
+CALL_RESULT --> local trace_109 = trace_101.FindFirstChild(trace_101, "ShoulderPad", true)
+CALL_RESULT --> local trace_110 = trace_101.FindFirstChild(trace_101, "Stock", true)
+CALL_RESULT --> local trace_111 = task.wait(0.20000000000000001)
+CALL_RESULT --> local trace_112 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_112.FindFirstChild
+CALL_RESULT --> local trace_113 = trace_112.FindFirstChild(trace_112, "Ignore")
+ACCESSED --> trace_113.FindFirstChild
+CALL_RESULT --> local trace_114 = trace_113.FindFirstChild(trace_113, "FPSArms")
+ACCESSED --> trace_114.FindFirstChild
+CALL_RESULT --> local trace_115 = trace_114.FindFirstChild(trace_114, "HandModel")
+ACCESSED --> trace_115.FindFirstChild
+CALL_RESULT --> local trace_116 = trace_115.FindFirstChild(trace_115, "DefaultSight", true)
+CALL_RESULT --> local trace_117 = trace_115.FindFirstChild(trace_115, "Barrel", true)
+CALL_RESULT --> local trace_118 = trace_115.FindFirstChild(trace_115, "Body", true)
+CALL_RESULT --> local trace_119 = trace_115.FindFirstChild(trace_115, "ChargingHandle", true)
+CALL_RESULT --> local trace_120 = trace_115.FindFirstChild(trace_115, "Decals", true)
+CALL_RESULT --> local trace_121 = trace_115.FindFirstChild(trace_115, "Mag", true)
+CALL_RESULT --> local trace_122 = trace_115.FindFirstChild(trace_115, "Rails", true)
+CALL_RESULT --> local trace_123 = trace_115.FindFirstChild(trace_115, "ShoulderPad", true)
+CALL_RESULT --> local trace_124 = trace_115.FindFirstChild(trace_115, "Stock", true)
+CALL_RESULT --> local trace_125 = task.wait(0.20000000000000001)
+CALL_RESULT --> local trace_126 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_126.FindFirstChild
+CALL_RESULT --> local trace_127 = trace_126.FindFirstChild(trace_126, "Ignore")
+ACCESSED --> trace_127.FindFirstChild
+CALL_RESULT --> local trace_128 = trace_127.FindFirstChild(trace_127, "FPSArms")
+ACCESSED --> trace_128.FindFirstChild
+CALL_RESULT --> local trace_129 = trace_128.FindFirstChild(trace_128, "HandModel")
+ACCESSED --> trace_129.FindFirstChild
+CALL_RESULT --> local trace_130 = trace_129.FindFirstChild(trace_129, "DefaultSight", true)
+CALL_RESULT --> local trace_131 = trace_129.FindFirstChild(trace_129, "Barrel", true)
+CALL_RESULT --> local trace_132 = trace_129.FindFirstChild(trace_129, "Body", true)
+CALL_RESULT --> local trace_133 = trace_129.FindFirstChild(trace_129, "ChargingHandle", true)
+CALL_RESULT --> local trace_134 = trace_129.FindFirstChild(trace_129, "Decals", true)
+CALL_RESULT --> local trace_135 = trace_129.FindFirstChild(trace_129, "Mag", true)
+CALL_RESULT --> local trace_136 = trace_129.FindFirstChild(trace_129, "Rails", true)
+CALL_RESULT --> local trace_137 = trace_129.FindFirstChild(trace_129, "ShoulderPad", true)
+CALL_RESULT --> local trace_138 = trace_129.FindFirstChild(trace_129, "Stock", true)
+CALL_RESULT --> local trace_139 = task.wait(0.20000000000000001)
+CALL_RESULT --> local trace_140 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_140.FindFirstChild
+CALL_RESULT --> local trace_141 = trace_140.FindFirstChild(trace_140, "Ignore")
+ACCESSED --> trace_141.FindFirstChild
+CALL_RESULT --> local trace_142 = trace_141.FindFirstChild(trace_141, "FPSArms")
+ACCESSED --> trace_142.FindFirstChild
+CALL_RESULT --> local trace_143 = trace_142.FindFirstChild(trace_142, "HandModel")
+ACCESSED --> trace_143.FindFirstChild
+CALL_RESULT --> local trace_144 = trace_143.FindFirstChild(trace_143, "DefaultSight", true)
+CALL_RESULT --> local trace_145 = trace_143.FindFirstChild(trace_143, "Barrel", true)
+CALL_RESULT --> local trace_146 = trace_143.FindFirstChild(trace_143, "Body", true)
+CALL_RESULT --> local trace_147 = trace_143.FindFirstChild(trace_143, "ChargingHandle", true)
+CALL_RESULT --> local trace_148 = trace_143.FindFirstChild(trace_143, "Decals", true)
+CALL_RESULT --> local trace_149 = trace_143.FindFirstChild(trace_143, "Mag", true)
+CALL_RESULT --> local trace_150 = trace_143.FindFirstChild(trace_143, "Rails", true)
+CALL_RESULT --> local trace_151 = trace_143.FindFirstChild(trace_143, "ShoulderPad", true)
+CALL_RESULT --> local trace_152 = trace_143.FindFirstChild(trace_143, "Stock", true)
+CALL_RESULT --> local trace_153 = task.wait(0.20000000000000001)
+CALL_RESULT --> local trace_154 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_154.FindFirstChild
+CALL_RESULT --> local trace_155 = trace_154.FindFirstChild(trace_154, "Ignore")
+ACCESSED --> trace_155.FindFirstChild
+CALL_RESULT --> local trace_156 = trace_155.FindFirstChild(trace_155, "FPSArms")
+ACCESSED --> trace_156.FindFirstChild
+CALL_RESULT --> local trace_157 = trace_156.FindFirstChild(trace_156, "HandModel")
+ACCESSED --> trace_157.FindFirstChild
+CALL_RESULT --> local trace_158 = trace_157.FindFirstChild(trace_157, "DefaultSight", true)
+CALL_RESULT --> local trace_159 = trace_157.FindFirstChild(trace_157, "Barrel", true)
+CALL_RESULT --> local trace_160 = trace_157.FindFirstChild(trace_157, "Body", true)
+CALL_RESULT --> local trace_161 = trace_157.FindFirstChild(trace_157, "ChargingHandle", true)
+CALL_RESULT --> local trace_162 = trace_157.FindFirstChild(trace_157, "Decals", true)
+CALL_RESULT --> local trace_163 = trace_157.FindFirstChild(trace_157, "Mag", true)
+CALL_RESULT --> local trace_164 = trace_157.FindFirstChild(trace_157, "Rails", true)
+CALL_RESULT --> local trace_165 = trace_157.FindFirstChild(trace_157, "ShoulderPad", true)
+CALL_RESULT --> local trace_166 = trace_157.FindFirstChild(trace_157, "Stock", true)
+CALL_RESULT --> local trace_167 = task.wait(0.20000000000000001)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR task.spawn ---
+ACCESSED --> workspace.GetChildren
+CALL_RESULT --> local trace_168 = workspace.GetChildren(workspace)
+CALL_RESULT --> local trace_169 = workspace.ChildAdded.Connect(workspace.ChildAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildAdded.Connect ---
+CLOSURE_ARGS --> callback8_arg1, callback8_arg2, callback8_arg3, callback8_arg4
+ACCESSED --> callback8_arg1.IsA
+CALL_RESULT --> local trace_170 = callback8_arg1.IsA(callback8_arg1, "Model")
+ACCESSED --> callback8_arg1.Name
+ACCESSED --> trace_5.LocalPlayer.Name
+ACCESSED --> callback8_arg1.FindFirstChild
+CALL_RESULT --> local trace_171 = callback8_arg1.FindFirstChild(callback8_arg1, "HumanoidRootPart")
+--- EXITING CLOSURE FOR workspace.ChildAdded.Connect ---
+CALL_RESULT --> local trace_172 = workspace.ChildRemoved.Connect(workspace.ChildRemoved, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CLOSURE_ARGS --> callback9_arg1, callback9_arg2, callback9_arg3, callback9_arg4
+--- EXITING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CALL_RESULT --> local trace_173 = trace_4.RenderStepped.Connect(trace_4.RenderStepped, function(...) end)
+--- ENTERING CLOSURE FOR trace_4.RenderStepped.Connect ---
+CLOSURE_ARGS --> callback10_arg1, callback10_arg2, callback10_arg3, callback10_arg4
+PROP_SET --> trace_20.Visible = false
+PROP_SET --> trace_21.Visible = false
+--- EXITING CLOSURE FOR trace_4.RenderStepped.Connect ---
+CALL_RESULT --> local trace_174 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_175 = Color3.fromRGB(0, 0, 255)
+ACCESSED --> workspace.Const
+ACCESSED --> workspace.Const.Ignore
+ACCESSED --> workspace.Const.Ignore.LocalCharacter
+ACCESSED --> workspace.Const.Ignore.LocalCharacter.Top
+ACCESSED --> workspace.Const.Ignore.LocalCharacter.Top.Prism1
+ACCESSED --> workspace.Const.Ignore.LocalCharacter.Top.Prism1.CFrame
+CALL_RESULT --> local trace_176 = Vector2.new(20, ((workspace.CurrentCamera.ViewportSize.Y/2)-60))
+ACCESSED --> Vector2.zero
+ACCESSED --> trace_7.InputBegan
+ACCESSED --> trace_7.InputBegan.Connect
+CALL_RESULT --> local trace_177 = trace_7.InputBegan.Connect(trace_7.InputBegan, function(...) end)
+--- ENTERING CLOSURE FOR trace_7.InputBegan.Connect ---
+CLOSURE_ARGS --> callback11_arg1, callback11_arg2, callback11_arg3, callback11_arg4
+ACCESSED --> callback11_arg1.UserInputType
+ACCESSED --> Enum
+ACCESSED --> Enum.UserInputType
+ACCESSED --> Enum.UserInputType.MouseButton1
+--- EXITING CLOSURE FOR trace_7.InputBegan.Connect ---
+ACCESSED --> trace_7.InputEnded
+ACCESSED --> trace_7.InputEnded.Connect
+CALL_RESULT --> local trace_178 = trace_7.InputEnded.Connect(trace_7.InputEnded, function(...) end)
+--- ENTERING CLOSURE FOR trace_7.InputEnded.Connect ---
+CLOSURE_ARGS --> callback12_arg1, callback12_arg2, callback12_arg3, callback12_arg4
+ACCESSED --> callback12_arg1.UserInputType
+--- EXITING CLOSURE FOR trace_7.InputEnded.Connect ---
+ACCESSED --> trace_7.InputChanged
+ACCESSED --> trace_7.InputChanged.Connect
+CALL_RESULT --> local trace_179 = trace_7.InputChanged.Connect(trace_7.InputChanged, function(...) end)
+--- ENTERING CLOSURE FOR trace_7.InputChanged.Connect ---
+CLOSURE_ARGS --> callback13_arg1, callback13_arg2, callback13_arg3, callback13_arg4
+--- EXITING CLOSURE FOR trace_7.InputChanged.Connect ---
+CALL_RESULT --> local trace_180 = workspace.GetChildren(workspace)
+ACCESSED --> trace_180_v1.IsA
+CALL_RESULT --> local trace_181 = trace_180_v1.IsA(trace_180_v1, "Model")
+ACCESSED --> trace_5.LocalPlayer.Character
+ACCESSED --> trace_180_v1.FindFirstChild
+CALL_RESULT --> local trace_182 = trace_180_v1.FindFirstChild(trace_180_v1, "HumanoidRootPart")
+CALL_RESULT --> local trace_183 = workspace.ChildAdded.Connect(workspace.ChildAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildAdded.Connect ---
+CLOSURE_ARGS --> callback14_arg1, callback14_arg2, callback14_arg3, callback14_arg4
+CALL_RESULT --> local trace_184 = task.wait(0.10000000000000001)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR workspace.ChildAdded.Connect ---
+CALL_RESULT --> local trace_185 = workspace.ChildRemoved.Connect(workspace.ChildRemoved, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CLOSURE_ARGS --> callback15_arg1, callback15_arg2, callback15_arg3, callback15_arg4
+--- EXITING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CALL_RESULT --> local trace_186 = trace_4.RenderStepped.Connect(trace_4.RenderStepped, function(...) end)
+--- ENTERING CLOSURE FOR trace_4.RenderStepped.Connect ---
+CLOSURE_ARGS --> callback16_arg1, callback16_arg2, callback16_arg3, callback16_arg4
+--- EXITING CLOSURE FOR trace_4.RenderStepped.Connect ---
+CALL_RESULT --> local trace_187 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_188 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_189 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_190 = Color3.fromRGB(0, 0, 80)
+CALL_RESULT --> local trace_191 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_192 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_193 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_194 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_195 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_196 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_197 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_198 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_199 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_200 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_201 = Color3.fromRGB(20, 20, 20)
+ACCESSED --> Instance
+ACCESSED --> Instance.new
+CALL_RESULT --> local trace_202 = Instance.new("ScreenGui")
+PROP_SET --> trace_202.Name = "ESPHolder"
+PROP_SET --> trace_202.ResetOnSpawn = false
+ACCESSED --> Enum.ZIndexBehavior
+ACCESSED --> Enum.ZIndexBehavior.Sibling
+PROP_SET --> trace_202.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+PROP_SET --> trace_202.IgnoreGuiInset = true
+ACCESSED --> trace_5.LocalPlayer.WaitForChild
+CALL_RESULT --> local trace_203 = trace_5.LocalPlayer.WaitForChild(trace_5.LocalPlayer, "PlayerGui")
+PROP_SET --> trace_202.Parent = trace_203
+CALL_RESULT --> local trace_204 = trace_5.LocalPlayer.CharacterAdded.Connect(trace_5.LocalPlayer.CharacterAdded, function(...) end)
+--- ENTERING CLOSURE FOR trace_5.LocalPlayer.CharacterAdded.Connect ---
+CLOSURE_ARGS --> callback17_arg1, callback17_arg2, callback17_arg3, callback17_arg4
+CALL_RESULT --> local trace_205 = task.wait(0.5)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR trace_5.LocalPlayer.CharacterAdded.Connect ---
+CALL_RESULT --> local trace_206 = Vector2.new(0, 0)
+CALL_RESULT --> local trace_207 = Vector2.new(0, 0)
+CALL_RESULT --> local trace_208 = Vector2.new(1, 0)
+CALL_RESULT --> local trace_209 = Vector2.new(1, 0)
+CALL_RESULT --> local trace_210 = Vector2.new(0, 1)
+CALL_RESULT --> local trace_211 = Vector2.new(0, 1)
+CALL_RESULT --> local trace_212 = Vector2.new(1, 1)
+CALL_RESULT --> local trace_213 = Vector2.new(1, 1)
+CALL_RESULT --> local trace_214 = workspace.GetChildren(workspace)
+ACCESSED --> trace_214_v1.IsA
+CALL_RESULT --> local trace_215 = trace_214_v1.IsA(trace_214_v1, "Model")
+ACCESSED --> trace_214_v1.Name
+ACCESSED --> trace_214_v1.FindFirstChild
+CALL_RESULT --> local trace_216 = trace_214_v1.FindFirstChild(trace_214_v1, "HumanoidRootPart")
+CALL_RESULT --> local trace_217 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback18_arg1, callback18_arg2, callback18_arg3, callback18_arg4
+CALL_RESULT --> local trace_218 = task.wait(0.10000000000000001)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR task.spawn ---
+ACCESSED --> workspace.DescendantAdded
+ACCESSED --> workspace.DescendantAdded.Connect
+CALL_RESULT --> local trace_219 = workspace.DescendantAdded.Connect(workspace.DescendantAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.DescendantAdded.Connect ---
+CLOSURE_ARGS --> callback19_arg1, callback19_arg2, callback19_arg3, callback19_arg4
+ACCESSED --> callback19_arg1.IsA
+CALL_RESULT --> local trace_220 = callback19_arg1.IsA(callback19_arg1, "Model")
+CALL_RESULT --> local trace_221 = callback19_arg1.IsA(callback19_arg1, "Model")
+ACCESSED --> callback19_arg1.Name
+ACCESSED --> callback19_arg1.FindFirstChild
+CALL_RESULT --> local trace_222 = callback19_arg1.FindFirstChild(callback19_arg1, "HumanoidRootPart")
+CALL_RESULT --> local trace_223 = task.wait(0.10000000000000001)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR workspace.DescendantAdded.Connect ---
+ACCESSED --> workspace.DescendantRemoving
+ACCESSED --> workspace.DescendantRemoving.Connect
+CALL_RESULT --> local trace_224 = workspace.DescendantRemoving.Connect(workspace.DescendantRemoving, function(...) end)
+--- ENTERING CLOSURE FOR workspace.DescendantRemoving.Connect ---
+CLOSURE_ARGS --> callback20_arg1, callback20_arg2, callback20_arg3, callback20_arg4
+ACCESSED --> callback20_arg1.IsA
+CALL_RESULT --> local trace_225 = callback20_arg1.IsA(callback20_arg1, "Model")
+--- EXITING CLOSURE FOR workspace.DescendantRemoving.Connect ---
+CALL_RESULT --> local trace_226 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback21_arg1, callback21_arg2, callback21_arg3, callback21_arg4
+CALL_RESULT --> local trace_227 = task.wait(15)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR task.spawn ---
+ACCESSED --> Vector3
+ACCESSED --> Vector3.new
+CALL_RESULT --> local trace_228 = Vector3.new(0, 2.7999999999999998, 0)
+CALL_RESULT --> local trace_229 = Vector3.new(0, 3, 0)
+ACCESSED --> ColorSequence
+ACCESSED --> ColorSequence.new
+ACCESSED --> ColorSequenceKeypoint
+ACCESSED --> ColorSequenceKeypoint.new
+CALL_RESULT --> local trace_230 = ColorSequenceKeypoint.new(0, trace_189)
+CALL_RESULT --> local trace_231 = ColorSequenceKeypoint.new(1, trace_190)
+CALL_RESULT --> local trace_232 = ColorSequence.new({[1] = trace_230, [2] = trace_231})
+ACCESSED --> trace_4.Heartbeat
+ACCESSED --> trace_4.Heartbeat.Connect
+CALL_RESULT --> local trace_233 = trace_4.Heartbeat.Connect(trace_4.Heartbeat, function(...) end)
+--- ENTERING CLOSURE FOR trace_4.Heartbeat.Connect ---
+CLOSURE_ARGS --> callback22_arg1, callback22_arg2, callback22_arg3, callback22_arg4
+ACCESSED --> tick
+CALL_RESULT --> local trace_234 = tick()
+CLOSURE ERROR --> "input:1: attempt to compare table < number"
+--- EXITING CLOSURE FOR trace_4.Heartbeat.Connect ---
+CALL_RESULT --> local trace_235 = trace_4.Heartbeat.Connect(trace_4.Heartbeat, function(...) end)
+--- ENTERING CLOSURE FOR trace_4.Heartbeat.Connect ---
+CLOSURE_ARGS --> callback23_arg1, callback23_arg2, callback23_arg3, callback23_arg4
+--- EXITING CLOSURE FOR trace_4.Heartbeat.Connect ---
+CALL_RESULT --> local trace_236 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_237 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_238 = Color3.fromRGB(0, 0, 100)
+CALL_RESULT --> local trace_239 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_240 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_241 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_242 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_243 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_244 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_245 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_246 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_247 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_248 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_249 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_250 = Color3.fromRGB(20, 20, 20)
+CALL_RESULT --> local trace_251 = Color3.fromRGB(255, 165, 0)
+CALL_RESULT --> local trace_252 = Color3.fromRGB(230, 182, 0)
+CALL_RESULT --> local trace_253 = Color3.fromRGB(150, 150, 150)
+CALL_RESULT --> local trace_254 = Color3.fromRGB(255, 0, 207)
+CALL_RESULT --> local trace_255 = Color3.fromRGB(44, 97, 0)
+CALL_RESULT --> local trace_256 = Color3.fromRGB(100, 100, 100)
+CALL_RESULT --> local trace_257 = Color3.fromRGB(200, 0, 0)
+CALL_RESULT --> local trace_258 = workspace.GetChildren(workspace)
+CALL_RESULT --> local trace_259 = task.spawn(function(...) end, trace_258_v1)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback24_arg1, callback24_arg2, callback24_arg3, callback24_arg4
+ACCESSED --> callback24_arg1.IsA
+CALL_RESULT --> local trace_260 = callback24_arg1.IsA(callback24_arg1, "Model")
+ACCESSED --> callback24_arg1.FindFirstChild
+CALL_RESULT --> local trace_261 = callback24_arg1.FindFirstChild(callback24_arg1, "default")
+ACCESSED --> callback24_arg1.GetChildren
+CALL_RESULT --> local trace_262 = callback24_arg1.GetChildren(callback24_arg1)
+ACCESSED --> trace_262_v1.IsA
+CALL_RESULT --> local trace_263 = trace_262_v1.IsA(trace_262_v1, "BasePart")
+ACCESSED --> trace_262_v1.Name
+CALL_RESULT --> local trace_264 = callback24_arg1.FindFirstChild(callback24_arg1, "box")
+CALL_RESULT --> local trace_265 = callback24_arg1.FindFirstChild(callback24_arg1, "trash")
+ACCESSED --> trace_264.IsA
+CALL_RESULT --> local trace_266 = trace_264.IsA(trace_264, "MeshPart")
+ACCESSED --> trace_265.IsA
+CALL_RESULT --> local trace_267 = trace_265.IsA(trace_265, "MeshPart")
+ACCESSED --> callback24_arg1.FindFirstChildWhichIsA
+CALL_RESULT --> local trace_268 = callback24_arg1.FindFirstChildWhichIsA(callback24_arg1, "BasePart")
+CALL_RESULT --> local trace_269 = Drawing.new("Text")
+PROP_SET --> trace_269.Text = "DefaultBox"
+PROP_SET --> trace_269.Size = 10
+PROP_SET --> trace_269.Center = true
+PROP_SET --> trace_269.Font = 2
+PROP_SET --> trace_269.Outline = true
+ACCESSED --> Color3.new
+CALL_RESULT --> local trace_270 = Color3.new(0, 0, 0)
+PROP_SET --> trace_269.OutlineColor = trace_270
+PROP_SET --> trace_269.Color = trace_252
+PROP_SET --> trace_269.Visible = false
+ACCESSED --> callback24_arg1.AncestryChanged
+ACCESSED --> callback24_arg1.AncestryChanged.Connect
+CALL_RESULT --> local trace_271 = callback24_arg1.AncestryChanged.Connect(callback24_arg1.AncestryChanged, function(...) end)
+--- ENTERING CLOSURE FOR callback24_arg1.AncestryChanged.Connect ---
+CLOSURE_ARGS --> callback25_arg1, callback25_arg2, callback25_arg3, callback25_arg4
+ACCESSED --> callback24_arg1.Parent
+--- EXITING CLOSURE FOR callback24_arg1.AncestryChanged.Connect ---
+--- EXITING CLOSURE FOR task.spawn ---
+CALL_RESULT --> local trace_272 = workspace.ChildAdded.Connect(workspace.ChildAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildAdded.Connect ---
+CLOSURE_ARGS --> callback26_arg1, callback26_arg2, callback26_arg3, callback26_arg4
+CALL_RESULT --> local trace_273 = task.spawn(function(...) end, callback26_arg1)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback27_arg1, callback27_arg2, callback27_arg3, callback27_arg4
+ACCESSED --> callback27_arg1.IsA
+CALL_RESULT --> local trace_274 = callback27_arg1.IsA(callback27_arg1, "Model")
+ACCESSED --> callback27_arg1.FindFirstChild
+CALL_RESULT --> local trace_275 = callback27_arg1.FindFirstChild(callback27_arg1, "default")
+ACCESSED --> callback27_arg1.GetChildren
+CALL_RESULT --> local trace_276 = callback27_arg1.GetChildren(callback27_arg1)
+ACCESSED --> trace_276_v1.IsA
+CALL_RESULT --> local trace_277 = trace_276_v1.IsA(trace_276_v1, "BasePart")
+ACCESSED --> trace_276_v1.Name
+CALL_RESULT --> local trace_278 = callback27_arg1.FindFirstChild(callback27_arg1, "box")
+CALL_RESULT --> local trace_279 = callback27_arg1.FindFirstChild(callback27_arg1, "trash")
+ACCESSED --> trace_278.IsA
+CALL_RESULT --> local trace_280 = trace_278.IsA(trace_278, "MeshPart")
+ACCESSED --> trace_279.IsA
+CALL_RESULT --> local trace_281 = trace_279.IsA(trace_279, "MeshPart")
+ACCESSED --> callback27_arg1.FindFirstChildWhichIsA
+CALL_RESULT --> local trace_282 = callback27_arg1.FindFirstChildWhichIsA(callback27_arg1, "BasePart")
+CALL_RESULT --> local trace_283 = Drawing.new("Text")
+PROP_SET --> trace_283.Text = "DefaultBox"
+PROP_SET --> trace_283.Size = 10
+PROP_SET --> trace_283.Center = true
+PROP_SET --> trace_283.Font = 2
+PROP_SET --> trace_283.Outline = true
+CALL_RESULT --> local trace_284 = Color3.new(0, 0, 0)
+PROP_SET --> trace_283.OutlineColor = trace_284
+PROP_SET --> trace_283.Color = trace_252
+PROP_SET --> trace_283.Visible = false
+ACCESSED --> callback27_arg1.AncestryChanged
+ACCESSED --> callback27_arg1.AncestryChanged.Connect
+CALL_RESULT --> local trace_285 = callback27_arg1.AncestryChanged.Connect(callback27_arg1.AncestryChanged, function(...) end)
+--- ENTERING CLOSURE FOR callback27_arg1.AncestryChanged.Connect ---
+CLOSURE_ARGS --> callback28_arg1, callback28_arg2, callback28_arg3, callback28_arg4
+ACCESSED --> callback27_arg1.Parent
+--- EXITING CLOSURE FOR callback27_arg1.AncestryChanged.Connect ---
+--- EXITING CLOSURE FOR task.spawn ---
+--- EXITING CLOSURE FOR workspace.ChildAdded.Connect ---
+CALL_RESULT --> local trace_286 = workspace.ChildRemoved.Connect(workspace.ChildRemoved, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CLOSURE_ARGS --> callback29_arg1, callback29_arg2, callback29_arg3, callback29_arg4
+--- EXITING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CALL_RESULT --> local trace_287 = Color3.fromRGB(120, 120, 120)
+CALL_RESULT --> local trace_288 = Color3.fromRGB(255, 215, 0)
+CALL_RESULT --> local trace_289 = Color3.fromRGB(200, 255, 200)
+CALL_RESULT --> local trace_290 = Color3.fromRGB(72, 72, 72)
+CALL_RESULT --> local trace_291 = Color3.fromRGB(199, 172, 120)
+CALL_RESULT --> local trace_292 = Color3.fromRGB(248, 248, 248)
+CALL_RESULT --> local trace_293 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback30_arg1, callback30_arg2, callback30_arg3, callback30_arg4
+CALL_RESULT --> local trace_294 = workspace.GetChildren(workspace)
+ACCESSED --> trace_294_v1.IsA
+CALL_RESULT --> local trace_295 = trace_294_v1.IsA(trace_294_v1, "Model")
+ACCESSED --> trace_294_v1.GetChildren
+CALL_RESULT --> local trace_296 = trace_294_v1.GetChildren(trace_294_v1)
+ACCESSED --> trace_296_v1.IsA
+CALL_RESULT --> local trace_297 = trace_296_v1.IsA(trace_296_v1, "MeshPart")
+ACCESSED --> trace_296_v1.Color
+ACCESSED --> trace_296_v1.Color.R
+ACCESSED --> trace_290.R
+CLOSURE ERROR --> "input:1: invalid argument #1 to 'abs' (number expected, got table)"
+--- EXITING CLOSURE FOR task.spawn ---
+CALL_RESULT --> local trace_298 = workspace.ChildAdded.Connect(workspace.ChildAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildAdded.Connect ---
+CLOSURE_ARGS --> callback31_arg1, callback31_arg2, callback31_arg3, callback31_arg4
+ACCESSED --> callback31_arg1.IsA
+CALL_RESULT --> local trace_299 = callback31_arg1.IsA(callback31_arg1, "Model")
+CALL_RESULT --> local trace_300 = task.wait()
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR workspace.ChildAdded.Connect ---
+CALL_RESULT --> local trace_301 = workspace.ChildRemoved.Connect(workspace.ChildRemoved, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CLOSURE_ARGS --> callback32_arg1, callback32_arg2, callback32_arg3, callback32_arg4
+--- EXITING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CALL_RESULT --> local trace_302 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback33_arg1, callback33_arg2, callback33_arg3, callback33_arg4
+CALL_RESULT --> local trace_303 = task.wait(3)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR task.spawn ---
+ACCESSED --> trace_10.Shared
+ACCESSED --> trace_10.Shared.entities
+ACCESSED --> trace_10.Shared.entities.vehicles
+ACCESSED --> trace_10.Shared.entities.vehicles.ATV
+ACCESSED --> trace_10.Shared.entities.vehicles.ATV.Model
+ACCESSED --> trace_10.Shared.entities.vehicles.Boat
+ACCESSED --> trace_10.Shared.entities.vehicles.Boat.Model
+ACCESSED --> trace_10.Shared.entities.vehicles.Helicopter
+ACCESSED --> trace_10.Shared.entities.vehicles.Helicopter.Model
+ACCESSED --> trace_10.Shared.entities.vehicles.Trolly
+ACCESSED --> trace_10.Shared.entities.vehicles.Trolly.Model
+CALL_RESULT --> local trace_304 = Color3.fromRGB(255, 100, 0)
+CALL_RESULT --> local trace_305 = Color3.fromRGB(0, 150, 255)
+CALL_RESULT --> local trace_306 = Color3.fromRGB(0, 255, 0)
+CALL_RESULT --> local trace_307 = Color3.fromRGB(200, 200, 0)
+CALL_RESULT --> local trace_308 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback34_arg1, callback34_arg2, callback34_arg3, callback34_arg4
+CALL_RESULT --> local trace_309 = workspace.GetChildren(workspace)
+ACCESSED --> trace_309_v1.IsA
+CALL_RESULT --> local trace_310 = trace_309_v1.IsA(trace_309_v1, "Model")
+ACCESSED --> trace_10.Shared.entities.vehicles.Helicopter.Model.GetChildren
+CALL_RESULT --> local trace_311 = trace_10.Shared.entities.vehicles.Helicopter.Model.GetChildren(trace_10.Shared.entities.vehicles.Helicopter.Model)
+ACCESSED --> trace_309_v1.FindFirstChild
+ACCESSED --> trace_311_v1.Name
+CALL_RESULT --> local trace_312 = trace_309_v1.FindFirstChild(trace_309_v1, trace_311_v1.Name)
+ACCESSED --> trace_309_v1.PrimaryPart
+CALL_RESULT --> local trace_313 = Drawing.new("Text")
+PROP_SET --> trace_313.Text = "Helicopter"
+PROP_SET --> trace_313.Size = 14
+PROP_SET --> trace_313.Center = true
+PROP_SET --> trace_313.Font = 2
+PROP_SET --> trace_313.Outline = true
+CALL_RESULT --> local trace_314 = Color3.new(0, 0, 0)
+PROP_SET --> trace_313.OutlineColor = trace_314
+PROP_SET --> trace_313.Color = trace_306
+PROP_SET --> trace_313.Visible = false
+ACCESSED --> trace_309_v1.AncestryChanged
+ACCESSED --> trace_309_v1.AncestryChanged.Connect
+CALL_RESULT --> local trace_315 = trace_309_v1.AncestryChanged.Connect(trace_309_v1.AncestryChanged, function(...) end)
+--- ENTERING CLOSURE FOR trace_309_v1.AncestryChanged.Connect ---
+CLOSURE_ARGS --> callback35_arg1, callback35_arg2, callback35_arg3, callback35_arg4
+ACCESSED --> trace_309_v1.Parent
+--- EXITING CLOSURE FOR trace_309_v1.AncestryChanged.Connect ---
+--- EXITING CLOSURE FOR task.spawn ---
+CALL_RESULT --> local trace_316 = workspace.ChildAdded.Connect(workspace.ChildAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildAdded.Connect ---
+CLOSURE_ARGS --> callback36_arg1, callback36_arg2, callback36_arg3, callback36_arg4
+ACCESSED --> callback36_arg1.IsA
+CALL_RESULT --> local trace_317 = callback36_arg1.IsA(callback36_arg1, "Model")
+CALL_RESULT --> local trace_318 = task.wait(0.10000000000000001)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR workspace.ChildAdded.Connect ---
+CALL_RESULT --> local trace_319 = workspace.ChildRemoved.Connect(workspace.ChildRemoved, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CLOSURE_ARGS --> callback37_arg1, callback37_arg2, callback37_arg3, callback37_arg4
+--- EXITING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CALL_RESULT --> local trace_320 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback38_arg1, callback38_arg2, callback38_arg3, callback38_arg4
+CALL_RESULT --> local trace_321 = task.wait(3)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR task.spawn ---
+CALL_RESULT --> local trace_322 = Color3.fromRGB(255, 0, 0)
+CALL_RESULT --> local trace_323 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback39_arg1, callback39_arg2, callback39_arg3, callback39_arg4
+CALL_RESULT --> local trace_324 = workspace.GetChildren(workspace)
+ACCESSED --> trace_324_v1.IsA
+CALL_RESULT --> local trace_325 = trace_324_v1.IsA(trace_324_v1, "Model")
+ACCESSED --> trace_324_v1.GetChildren
+CALL_RESULT --> local trace_326 = trace_324_v1.GetChildren(trace_324_v1)
+ACCESSED --> trace_326_v1.IsA
+CALL_RESULT --> local trace_327 = trace_326_v1.IsA(trace_326_v1, "BasePart")
+--- EXITING CLOSURE FOR task.spawn ---
+CALL_RESULT --> local trace_328 = workspace.ChildAdded.Connect(workspace.ChildAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildAdded.Connect ---
+CLOSURE_ARGS --> callback40_arg1, callback40_arg2, callback40_arg3, callback40_arg4
+ACCESSED --> callback40_arg1.IsA
+CALL_RESULT --> local trace_329 = callback40_arg1.IsA(callback40_arg1, "Model")
+CALL_RESULT --> local trace_330 = task.wait(0.10000000000000001)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR workspace.ChildAdded.Connect ---
+CALL_RESULT --> local trace_331 = workspace.ChildRemoved.Connect(workspace.ChildRemoved, function(...) end)
+--- ENTERING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CLOSURE_ARGS --> callback41_arg1, callback41_arg2, callback41_arg3, callback41_arg4
+--- EXITING CLOSURE FOR workspace.ChildRemoved.Connect ---
+CALL_RESULT --> local trace_332 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback42_arg1, callback42_arg2, callback42_arg3, callback42_arg4
+CALL_RESULT --> local trace_333 = task.wait(5)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR task.spawn ---
+CALL_RESULT --> local trace_334 = Color3.fromRGB(255, 0, 0)
+CALL_RESULT --> local trace_335 = trace_4.Heartbeat.Connect(trace_4.Heartbeat, function(...) end)
+--- ENTERING CLOSURE FOR trace_4.Heartbeat.Connect ---
+CLOSURE_ARGS --> callback43_arg1, callback43_arg2, callback43_arg3, callback43_arg4
+CALL_RESULT --> local trace_336 = tick()
+CLOSURE ERROR --> "input:1: attempt to compare table < number"
+--- EXITING CLOSURE FOR trace_4.Heartbeat.Connect ---
+ACCESSED --> workspace.GetDescendants
+CALL_RESULT --> local trace_337 = workspace.GetDescendants(workspace)
+ACCESSED --> trace_337_v1.IsA
+CALL_RESULT --> local trace_338 = trace_337_v1.IsA(trace_337_v1, "BasePart")
+ACCESSED --> Enum.Material
+ACCESSED --> Enum.Material.Cobblestone
+ACCESSED --> Enum.Material.WoodPlanks
+ACCESSED --> Enum.Material.Metal
+ACCESSED --> Enum.Material.CorrodedMetal
+ACCESSED --> Enum.Material.Concrete
+ACCESSED --> Enum.Material.Brick
+ACCESSED --> Enum.Material.DiamondPlate
+ACCESSED --> trace_337_v1.Material
+CALL_RESULT --> local trace_339 = workspace.DescendantAdded.Connect(workspace.DescendantAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.DescendantAdded.Connect ---
+CLOSURE_ARGS --> callback44_arg1, callback44_arg2, callback44_arg3, callback44_arg4
+ACCESSED --> callback44_arg1.IsA
+CALL_RESULT --> local trace_340 = callback44_arg1.IsA(callback44_arg1, "BasePart")
+ACCESSED --> callback44_arg1.Material
+--- EXITING CLOSURE FOR workspace.DescendantAdded.Connect ---
+CALL_RESULT --> local trace_341 = workspace.DescendantRemoving.Connect(workspace.DescendantRemoving, function(...) end)
+--- ENTERING CLOSURE FOR workspace.DescendantRemoving.Connect ---
+CLOSURE_ARGS --> callback45_arg1, callback45_arg2, callback45_arg3, callback45_arg4
+--- EXITING CLOSURE FOR workspace.DescendantRemoving.Connect ---
+ACCESSED --> workspace.CurrentCamera.CFrame
+ACCESSED --> workspace.CurrentCamera.CFrame.Position
+CALL_RESULT --> local trace_342 = trace_4.RenderStepped.Connect(trace_4.RenderStepped, function(...) end)
+--- ENTERING CLOSURE FOR trace_4.RenderStepped.Connect ---
+CLOSURE_ARGS --> callback46_arg1, callback46_arg2, callback46_arg3, callback46_arg4
+--- EXITING CLOSURE FOR trace_4.RenderStepped.Connect ---
+CALL_RESULT --> local trace_343 = workspace.FindFirstChild(workspace, "World")
+ACCESSED --> trace_343.FindFirstChild
+CALL_RESULT --> local trace_344 = trace_343.FindFirstChild(trace_343, "Zones")
+ACCESSED --> trace_344.FindFirstChild
+CALL_RESULT --> local trace_345 = trace_344.FindFirstChild(trace_344, "SafeZones")
+ACCESSED --> trace_344.SafeZones
+ACCESSED --> trace_344.SafeZones.FindFirstChild
+CALL_RESULT --> local trace_346 = trace_344.SafeZones.FindFirstChild(trace_344.SafeZones, "SAFEZONE_Town")
+CALL_RESULT --> local trace_347 = Color3.fromRGB(0, 255, 0)
+CALL_RESULT --> local trace_348 = trace_344.FindFirstChild(trace_344, "NoBuildZones")
+CALL_RESULT --> local trace_349 = Color3.fromRGB(255, 0, 0)
+CALL_RESULT --> local trace_350 = Color3.fromRGB(0, 255, 0)
+CALL_RESULT --> local trace_351 = Color3.fromRGB(255, 0, 0)
+CALL_RESULT --> local trace_352 = Color3.new(0, 0, 1)
+ACCESSED --> Enum.Material.ForceField
+CALL_RESULT --> local trace_353 = Color3.new(0, 0, 1)
+SET GLOBAL --> a = {}
+SET GLOBAL --> w = {}
+SET GLOBAL --> ao = {}
+SET GLOBAL --> wo = {}
+CALL_RESULT --> local trace_354 = workspace.FindFirstChild(workspace, "Const")
+ACCESSED --> trace_354.FindFirstChild
+CALL_RESULT --> local trace_355 = trace_354.FindFirstChild(trace_354, "Ignore")
+ACCESSED --> trace_355.FindFirstChild
+CALL_RESULT --> local trace_356 = trace_355.FindFirstChild(trace_355, "FPSArms")
+ACCESSED --> trace_356.ChildAdded
+ACCESSED --> trace_356.ChildAdded.Connect
+CALL_RESULT --> local trace_357 = trace_356.ChildAdded.Connect(trace_356.ChildAdded, function(...) end)
+--- ENTERING CLOSURE FOR trace_356.ChildAdded.Connect ---
+CLOSURE_ARGS --> callback47_arg1, callback47_arg2, callback47_arg3, callback47_arg4
+CALL_RESULT --> local trace_358 = task.wait(0.10000000000000001)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR trace_356.ChildAdded.Connect ---
+CALL_RESULT --> local trace_359 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_360 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_361 = Color3.fromRGB(0, 0, 255)
+CALL_RESULT --> local trace_362 = workspace.DescendantAdded.Connect(workspace.DescendantAdded, function(...) end)
+--- ENTERING CLOSURE FOR workspace.DescendantAdded.Connect ---
+CLOSURE_ARGS --> callback48_arg1, callback48_arg2, callback48_arg3, callback48_arg4
+ACCESSED --> callback48_arg1.IsDescendantOf
+CALL_RESULT --> local trace_363 = callback48_arg1.IsDescendantOf(callback48_arg1, trace_10)
+--- EXITING CLOSURE FOR workspace.DescendantAdded.Connect ---
+CALL_RESULT --> local trace_364 = Color3.fromRGB(0, 0, 255)
+ACCESSED --> Enum.Font
+ACCESSED --> Enum.Font.Jura
+CALL_RESULT --> local trace_365 = trace_4.Heartbeat.Connect(trace_4.Heartbeat, function(...) end)
+--- ENTERING CLOSURE FOR trace_4.Heartbeat.Connect ---
+CLOSURE_ARGS --> callback49_arg1, callback49_arg2, callback49_arg3, callback49_arg4
+CLOSURE ERROR --> "input:1: attempt to compare number <= table"
+--- EXITING CLOSURE FOR trace_4.Heartbeat.Connect ---
+CALL_RESULT --> local trace_366 = task.spawn(function(...) end)
+--- ENTERING CLOSURE FOR task.spawn ---
+CLOSURE_ARGS --> callback50_arg1, callback50_arg2, callback50_arg3, callback50_arg4
+CALL_RESULT --> local trace_367 = task.wait(0.5)
+CLOSURE ERROR --> "wait limit reached"
+--- EXITING CLOSURE FOR task.spawn ---
+EXECUTION ERROR --> /tmp/combined.1932.luau:389: attempt to call a nil value
+stacktrace:
+/tmp/combined.1932.luau:389
+--- TRACE END ---
+
+--- CONSTANTS ---
+
