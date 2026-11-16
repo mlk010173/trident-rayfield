@@ -1,0 +1,236 @@
+game
+PlaceId
+NewDropdown
+Last Update: June 9, 2024
+Date Last Update
+07.06.2024
+NewTab
+Combat
+NewSection
+June 9, 2024
+Added closing and opening UI
+Added UI cover
+Added the FreeCamera function
+The Settings section has been added
+The Update history section has been added
+June 7, 2024
+A cheat has been created
+NewButton
+FreeCamera
+Shift+P to toggle freecam, Q and E to go up and down
+Boost FPS
+Boost FPS v1
+Boosting FPS
+Info
+loadstring
+HttpGet
+https://raw.githubusercontent.com/Nextinel/Roblox_UI_Exploit_Template/main/UI
+CreateLib
+Trident Survival V4 | Fazma
+RJTheme8
+ESP, Legit Aim
+esp, crosshair and legit aim head
+Visuals
+Settings
+Boost FPS v2
+Discord: discord.gg/zphCRRjer4
+Script Trident Survival V4
+Made By FAZMA
+NewKeybind
+Toggle UI
+makes the gui invisible, press again to make it visible
+Enum
+KeyCode
+Insert
+Update history
+Misc
+Fullbright (ban risk)
+Fullbright
+print
+LocalScript0
+Name
+Parent
+sandbox
+cors
+Destroy
+pairs
+spawn
+Instance
+Model
+GetService
+Lighting
+LocalScript
+table
+insert
+GetChildren
+Players
+LocalPlayer
+PlayerGui
+pcall
+getfenv
+setmetatable
+__index
+setfenv
+script
+math
+clamp
+sign
+sqrt
+ContextActionService
+RunService
+StarterGui
+UserInputService
+GetPropertyChangedSignal
+Wait
+workspace
+CurrentCamera
+Connect
+ContextActionPriority
+Value
+High
+LeftShift
+Vector3
+Vector2
+Update
+Reset
+Delta
+MouseWheel
+StartCapture
+StopCapture
+ButtonX
+ButtonY
+DPadDown
+DPadUp
+ButtonL2
+ButtonR2
+Thumbstick1
+Thumbstick2
+Down
+RightShift
+333333
+BadgesNotificationsActive
+PointsNotificationsActive
+Push
+Backpack
+Chat
+Health
+PlayerList
+BindActionAtPriority
+FreecamToggle
+Position
+ContextActionResult
+Sink
+FreecamKeyboard
+FreecamMousePan
+UserInputType
+MouseMovement
+FreecamMouseWheel
+FreecamGamepadButton
+FreecamGamepadTrigger
+FreecamGamepadThumbstick
+UserInputState
+Begin
+UnbindAction
+IsKeyDown
+unit
+FindPartOnRay
+magnitude
+ViewportSize
+upVector
+rightVector
+lookVector
+CFrame
+Focus
+FieldOfView
+fromOrientation
+GetCoreGuiEnabled
+CoreGuiType
+SetCoreGuiEnabled
+GetCore
+SetCore
+FindFirstChildOfClass
+MouseIconEnabled
+mouseBehavior
+MouseBehavior
+CameraSubject
+CameraType
+Custom
+Default
+ScreenGui
+Enabled
+toEulerAnglesYXZ
+BindToRenderStep
+Freecam
+RenderPriority
+Camera
+UnbindFromRenderStep
+Pass
+MakeJoints
+Workspace
+Terrain
+WaterWaveSize
+WaterWaveSpeed
+WaterReflectance
+WaterTransparency
+GlobalShadows
+FogEnd
+Brightness
+settings
+Rendering
+QualityLevel
+Level01
+GetDescendants
+Part
+Union
+MeshPart
+Material
+Plastic
+Reflectance
+Decal
+Transparency
+ParticleEmitter
+Trail
+Lifetime
+NumberRange
+https://rawscripts.net/raw/Trident-Survival-V3-esp-and-hitbox-op-***-legit-head-and-good-esp-12304
+Ignore
+Ignore Me
+Ignore Others
+Ignore Tools
+Meshes
+NoMesh
+NoTexture
+Images
+Invisible
+Explosions
+Smaller
+Particles
+TextLabels
+LowerQuality
+MeshParts
+Other
+FPS Cap
+No Camera Effects
+No Clothes
+Low Water Graphics
+No Shadows
+Low Rendering
+Low Quality Parts
+Low Quality Models
+Reset Materials
+https://raw.githubusercontent.com/CasperFlyModz/discord.gg-rips/main/FPSBooster.lua
+ToggleUI
+BloomEffect
+BlurEffect
+ColorCorrectionEffect
+SunRaysEffect
+Changed
+Ambient
+Color3
+fromRGB
+Character
+wait
+HumanoidRootPart
+FindFirstChildWhichIsA
+PointLight
+Range
