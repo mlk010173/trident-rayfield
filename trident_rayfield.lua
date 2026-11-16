@@ -16,6 +16,15 @@
       * ESP com dois backends: Drawing (PC/executor completo) e Highlight +
         BillboardGui (Arceus X / mobile, sem Drawing).
 
+    Build 2.4 (modo seguro + engenharia do AV0X):
+      * SafeMode ligado por padrao: nao usa debug.getupvalues nem
+        debug.getconstants (o jogo loga "Executed a script" e tem
+        TamperingDetected). EntityMap so por getgc(true); silent aim
+        de projetil recusa instalar e cai no silent aim normal.
+      * AV0X (scriptblox 223117) mapeado: loader -> PyhTeT/avox.lol
+        -> main de 1,12 MB em VM WeAreDevs + Library.lua e addons em
+        texto puro. Decodificador em deob/deob_wearedevs.py.
+
     Build 2.3 (desofuscacao do Trident V4 + FPS booster):
       * Perf: preset de performance com sombras off, render no
         minimo, particulas off, efeitos de camera off, agua do
@@ -232,7 +241,7 @@ Window:Notify({
 pcall(function()
     Window:Popup({
         title = "trident • rayfield gen2",
-        subtitle = "build 2.3",
+        subtitle = "build 2.4",
         boxes = {
             { title = "Silent aim", description = "Hook no modulo de camera do jogo ou em Camera.CFrame, com predicao, FOV e checagem de visao." },
             { title = "ESP completo", description = "Usa Drawing quando o executor tem; senao cai para Highlight + Billboard." },
@@ -1283,7 +1292,9 @@ local function resolveEntityMap()
     if Farm.mapTried then return nil end
     Farm.mapTried = true
     if type(getgc) ~= "function" then return nil end
-    if type(debug) ~= "table" or type(debug.getupvalues) ~= "function" then return nil end
+    local debugAllowed = (not SafeMode.enabled) and type(debug) == "table"
+        and type(debug.getupvalues) == "function"
+    if not debugAllowed and not SafeMode.enabled then return nil end
 
     local ok, map = pcall(function()
         for _, value in pairs(getgc(true)) do
@@ -1292,7 +1303,7 @@ local function resolveEntityMap()
                 if type(candidate) == "table" and next(candidate) ~= nil then
                     return candidate
                 end
-            elseif type(value) == "function" then
+            elseif debugAllowed and type(value) == "function" then
                 local ups = debug.getupvalues(value)
                 if type(ups) == "table" then
                     for _, up in pairs(ups) do
@@ -1399,6 +1410,10 @@ loadCatalog()
 --   Panda22MyGod/TridentSurvival -> GetEquippedItem via getgc.
 --   Rostik22803/Ocel-hub-trident-survival -> containers por nome de
 --     filho ("Crates", "Cables") e materiais (Metal, Metal2...).
+
+-- Modo seguro: evita debug.getupvalues/getconstants (o jogo loga
+-- "Executed a script" e tem TamperingDetected). Ligado por padrao.
+local SafeMode = { enabled = true }
 
 local ProjectileAim = {
     enabled = false,
@@ -1526,6 +1541,10 @@ end
 
 local function installProjectileAim()
     if ProjectileAim.hooked then return true end
+    if SafeMode.enabled then
+        ProjectileAim.status = "modo seguro ativo (debug bloqueado)"
+        return false
+    end
     if type(hookfunction) ~= "function" then
         ProjectileAim.status = "executor sem hookfunction"
         return false
@@ -3076,6 +3095,22 @@ TCombat:CreateDropdown({
     end,
 })
 
+TCombat:CreateSection({ name = "Seguranca / deteccao" })
+
+TCombat:CreateToggle({
+    name = "Modo seguro",
+    description = "Ligado: nao usa debug.getupvalues nem debug.getconstants (o jogo loga Executed a script e tem TamperingDetected). Desligue so se o silent aim de projetil e o EntityMap forem necessarios.",
+    flag = "safe_mode",
+    value = true,
+    callback = function(v)
+        SafeMode.enabled = v
+        if v then
+            ProjectileAim.enabled = false
+        end
+        Log:add("modo seguro: " .. (v and "ativo" or "desligado"))
+    end,
+})
+
 TCombat:CreateSection({ name = "Hitbox" })
 
 TCombat:CreateToggle({
@@ -4154,6 +4189,7 @@ TConfig:CreateButton({
         Log:add("plataforma: " .. (IS_MOBILE and "celular" or "pc"))
         Log:add("mira: " .. (Aim.centerLock and "fixa no centro" or "segue o dedo/mouse"))
         Log:add("objetos no mapa: " .. tostring(#Workspace:GetChildren()))
+        Log:add("modo seguro: " .. (SafeMode.enabled and "ativo" or "desligado"))
         Log:add("silent aim de projetil: " .. tostring(ProjectileAim.status))
         Log:add("Highlight: " .. tostring(select(1, pcall(function() local h = Instance.new("Highlight"); h:Destroy() end)) and "ok" or "indisponivel"))
         Log:add("alvos vistos: " .. tostring(#getEntities(true)))
@@ -4228,7 +4264,7 @@ getgenv = getgenv or function() return _G end
 local genv = getgenv()
 if type(genv) == "table" then
     genv.trident_unload = liftoff
-    genv.trident = { Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Catalog = Catalog, Farm = Farm, ProjectileAim = ProjectileAim, Dash = Dash, Perf = Perf, Window = Window }
+    genv.trident = { Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Catalog = Catalog, Farm = Farm, ProjectileAim = ProjectileAim, Dash = Dash, Perf = Perf, SafeMode = SafeMode, Window = Window }
 end
 
 --=====================================================================
