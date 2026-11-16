@@ -24,6 +24,13 @@ Este build depende apenas de:
 
 Tudo passa por `pcall` com fallback: quando um path do jogo muda, o script avisa no console em vez de estourar.
 
+## Build 2.3 — desofuscação do Trident V4 + FPS booster
+
+- **`deob/deob_lol.py`**: decodificador da família de VM `LOL!` usada nos Trident V4 (hex + run-length `<n>O`, container de 34.755 bytes, 236 constantes). Gera `payload.bin`, `strings.txt` e `remotes.txt` para qualquer script dessa família.
+- **`deob/REPORT.md`**: o arquitetura do V4 recuperada. Ele carrega UI do template Nextinel, o combate/ESP/freecam do V3 do rawscripts (que é **texto puro**, 20 KB) e o FPS booster do CasperFlyModz.
+- **`deob/trident_v4_strings.txt`**: as 236 strings extraídas (features, URLs, nomes de API).
+- **FPS booster no script**: sombras off + FogEnd alto, `QualityLevel = Level01`, `MeshPartDetailLevel = Level04`, partículas off (`ParticleEmitter/Trail/Smoke/Fire/Sparkles`), efeitos de câmera off (Bloom/Blur/SunRays/DepthOfField), água do Terrain off e `MaterialService.Use2022Materials = false`, cada um com toggle, botão de preset e **restauração total** que devolve os valores originais.
+
 ## Build 2.2 — mineração de 86 repositórios
 
 Varredura com 10 consultas na API do GitHub (`trident survival`, `trident survival script`, `trident roblox cheat`, `swimhub trident`, `trident survival lua`, `aimbot`, `hack`, `gui`, `exploit`, `trident survival roblox`): **86 repositórios mapeados**, 22 com Lua legível, 44 arquivos baixados e analisados.
