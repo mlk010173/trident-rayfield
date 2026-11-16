@@ -24,6 +24,12 @@ Este build depende apenas de:
 
 Tudo passa por `pcall` com fallback: quando um path do jogo muda, o script avisa no console em vez de estourar.
 
+## Build 2.4 — modo seguro contra detecção + engenharia do AV0X
+
+- **Modo seguro (novo, ligado por padrão)**: o jogo tem `TamperingDetected` e loga `Executed a script` quando alguém usa `debug.getupvalues`/`debug.getconstants`. Com o modo seguro ligado, o `EntityMap` só é buscado por tabelas do `getgc(true)` e o silent aim de projetil recusa instalar (usa o silent aim normal). Desligando, libera os dois caminhos.
+- **AV0X (scriptblox 223117) analisado**: loader de 143 bytes → `PyhTeT/avox.lol` → main de 1,12 MB em **VM WeAreDevs** + `Library.lua`/`addons` em texto puro. Ver `deob/AV0X.md`.
+- **`deob/deob_wearedevs.py`**: decodificador da VM WeAreDevs (base64 de alfabeto trocado, grupos de 4→3 bytes, `=` de fechamento). Recuperou 4.312 constantes do main do AV0X em `deob/avox_strings.txt`.
+
 ## Build 2.3 — desofuscação do Trident V4 + FPS booster
 
 - **`deob/deob_lol.py`**: decodificador da família de VM `LOL!` usada nos Trident V4 (hex + run-length `<n>O`, container de 34.755 bytes, 236 constantes). Gera `payload.bin`, `strings.txt` e `remotes.txt` para qualquer script dessa família.
