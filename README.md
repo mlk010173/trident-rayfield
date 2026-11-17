@@ -160,3 +160,11 @@ Pacote AV0X integrado: containers `default`/`box`/`trash`, zonas `SafeZones` /
 `NoBuildZones`, veiculos em `Shared.entities.vehicles` e arm chams no
 `workspace.Const.Ignore.FPSArms`. Fonte em `deob/AV0X_reconstructed.lua`
 (522 linhas reconstruidas da VM) e `deob/AV0X_trace.txt`.
+
+## build 2.9
+
+- Hitbox com eixos separados (X, Y, Z) e cor propria (material Neon).
+- Filtros de hitbox do AV0X: ignorar time, ignorar dormindo, so players.
+- Aimbot e ESP com checagem de time (`sameTeam`, SafeMode independente).
+- FOV com preenchimento: toggle, cor e transparencia.
+- Janela abre sozinha (AutoShow) e botao flutuante "MENU" para toque.

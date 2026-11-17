@@ -421,7 +421,7 @@ local RawWindow
 do
     local config = {
         Title = "trident",
-        SubTitle = IS_MOBILE and "build 2.8 - mobile" or "build 2.8",
+        SubTitle = IS_MOBILE and "build 2.9 - mobile" or "build 2.9",
         TabWidth = 170,
         BaseKey = Enum.KeyCode.RightShift,
         Font = nil,
@@ -642,7 +642,7 @@ end)
 
 Window:Notify({
     title = "trident",
-    content = "Linoria carregada (build 2.8).",
+    content = "Linoria carregada (build 2.9).",
     duration = 4,
 })
 
@@ -832,6 +832,17 @@ end)
 --=====================================================================
 local entityCache = { list = {}, stamp = 0 }
 
+local function sameTeam(model)
+    local ok, result = pcall(function()
+        local player = Players:GetPlayerFromCharacter(model)
+        if not player then return false end
+        local me = LocalPlayer
+        if not me or not me.Team then return false end
+        return player.Team ~= nil and me.Team ~= nil and player.Team == me.Team
+    end)
+    return ok and result == true
+end
+
 local function isSleeping(model)
     local head = model:FindFirstChild("Head")
     if not head then return false end
@@ -961,6 +972,7 @@ local Aim = {
     prediction = 0.09,
     visibleOnly = false,
     ignoreSleepers = true,
+    ignoreTeam = true,
     targetNpc = true,
     -- no celular a mira fica no centro da tela; sem isso o FOV e o alvo
     -- seguem o dedo e o aimbot mira na direcao errada
@@ -1018,6 +1030,7 @@ local function bestTarget()
                 local skip = false
 
                 if dist > Aim.distance then skip = true end
+                if not skip and Aim.ignoreTeam and ent.isPlayer and sameTeam(ent.model) then skip = true end
                 if not skip and Aim.ignoreSleepers and isSleeping(ent.model) then skip = true end
                 if not skip and Aim.visibleOnly and not isVisible(part) then skip = true end
 
@@ -1150,8 +1163,14 @@ local Hitbox = {
     enabled = false,
     sizeX = 6,
     sizeY = 6,
+    sizeZ = 6,
     transparency = 0.6,
     canCollide = false,
+    color = nil,
+    ignoreTeam = false,
+    ignoreSleepers = false,
+    ignoreTeam = false,
+    ignoreNpc = false,
 }
 
 local hitboxOriginals = {}
@@ -1159,18 +1178,29 @@ local hitboxOriginals = {}
 local function hitboxApply()
     for _, ent in pairs(getEntities(true)) do
         local head = ent.head
-        if head then
+        local skip = false
+        -- filtros do AV0X (HitboxTeamCheck / HitboxSleeperCheck / HitboxAICheck)
+        if head and Hitbox.ignoreTeam and ent.isPlayer and sameTeam(ent.model) then skip = true end
+        if not skip and head and Hitbox.ignoreSleepers and isSleeping(ent.model) then skip = true end
+        if not skip and head and Hitbox.ignoreNpc and not ent.isPlayer then skip = true end
+        if head and not skip then
             if not hitboxOriginals[head] then
                 hitboxOriginals[head] = {
                     size = head.Size,
                     transparency = head.Transparency,
                     cancollide = head.CanCollide,
+                    color = head.Color,
+                    material = head.Material,
                 }
             end
             pcall(function()
-                head.Size = Vector3.new(Hitbox.sizeX, Hitbox.sizeY, Hitbox.sizeX)
+                head.Size = Vector3.new(Hitbox.sizeX, Hitbox.sizeY, Hitbox.sizeZ)
                 head.Transparency = Hitbox.transparency
                 head.CanCollide = Hitbox.canCollide
+                if Hitbox.color then
+                    head.Color = Hitbox.color
+                    head.Material = Enum.Material.Neon
+                end
             end)
         end
     end
@@ -1183,6 +1213,8 @@ local function hitboxRestore()
                 head.Size = orig.size
                 head.Transparency = orig.transparency
                 head.CanCollide = orig.cancollide
+                if orig.color then head.Color = orig.color end
+                if orig.material then head.Material = orig.material end
             end)
         end
     end
@@ -1339,6 +1371,7 @@ local function updateEsp()
         if not skip and dist and dist > Esp.maxDistance then skip = true end
         if not skip and ent.isPlayer and not Esp.players then skip = true end
         if not skip and (not ent.isPlayer) and not Esp.npc then skip = true end
+        if not skip and Esp.ignoreTeam and ent.isPlayer and sameTeam(ent.model) then skip = true end
         if not skip and Esp.ignoreSleepers and isSleeping(ent.model) then skip = true end
         if not skip and Esp.visibleOnly and not isVisible(ent.head) then skip = true end
 
@@ -3290,6 +3323,9 @@ end)
 --=====================================================================
 local Overlay = {
     fov = false,
+    fovFill = false,
+    fovFillColor = Color3.fromRGB(255, 255, 255),
+    fovFillTransparency = 0.7,
     crosshair = false,
     color = Color3.fromRGB(255, 255, 255),
     objects = nil,
@@ -3300,6 +3336,7 @@ local function ensureOverlay()
     if Overlay.objects then return Overlay.objects end
     local ok, objs = pcall(function()
         return {
+            fill = newDrawing("Circle", { Thickness = 0, Filled = true, Transparency = 1 }),
             circle = newDrawing("Circle", { Thickness = 1, Filled = false, Transparency = 1 }),
             box = newDrawing("Square", { Thickness = 1, Filled = false, Transparency = 1 }),
             dot = newDrawing("Square", { Thickness = 1, Filled = true, Transparency = 1 }),
@@ -3332,8 +3369,22 @@ addUpdater(function()
             o.circle.Color = Overlay.color
             o.circle.Transparency = 1
         end)
+        if Overlay.fovFill then
+            pcall(function()
+                o.fill.Visible = true
+                o.fill.Position = cursor
+                o.fill.Radius = Aim.fov
+                o.fill.Color = Overlay.fovFillColor
+                o.fill.Transparency = Overlay.fovFillTransparency
+            end)
+        else
+            pcall(function() o.fill.Visible = false end)
+        end
     else
-        pcall(function() o.circle.Visible = false end)
+        pcall(function()
+            o.circle.Visible = false
+            o.fill.Visible = false
+        end)
     end
 
     if Overlay.crosshair then
@@ -3683,6 +3734,14 @@ TCombat:CreateToggle({
 })
 
 TCombat:CreateToggle({
+    name = "Ignorar time",
+    flag = "aim_team",
+    value = true,
+    description = "Nao mira em quem esta no seu time.",
+    callback = function(v) Aim.ignoreTeam = v end,
+})
+
+TCombat:CreateToggle({
     name = "Ignorar quem esta dormindo",
     flag = "aim_sleepers",
     value = true,
@@ -3817,6 +3876,45 @@ TCombat:CreateToggle({
     callback = function(v) Hitbox.canCollide = v end,
 })
 
+TCombat:CreateSlider({
+    name = "Hitbox altura (Z)",
+    flag = "hb_sizez",
+    range = { 1, 15 },
+    increment = 1,
+    value = 6,
+    callback = function(v) Hitbox.sizeZ = v end,
+})
+
+TCombat:CreateColorPicker({
+    name = "Hitbox cor",
+    flag = "hb_color",
+    color = Color3.fromRGB(255, 0, 0),
+    callback = function(color) Hitbox.color = color end,
+})
+
+TCombat:CreateToggle({
+    name = "Hitbox: ignorar time",
+    flag = "hb_team",
+    value = false,
+    description = "Nao expande hitbox de quem esta no seu time.",
+    callback = function(v) Hitbox.ignoreTeam = v end,
+})
+
+TCombat:CreateToggle({
+    name = "Hitbox: ignorar dormindo",
+    flag = "hb_sleep",
+    value = false,
+    callback = function(v) Hitbox.ignoreSleepers = v end,
+})
+
+TCombat:CreateToggle({
+    name = "Hitbox: so players",
+    flag = "hb_npc",
+    value = false,
+    description = "Deixa NPC fora do hitbox expander.",
+    callback = function(v) Hitbox.ignoreNpc = v end,
+})
+
 --=====================================================================
 -- 14. UI — VISUALS
 --=====================================================================
@@ -3896,6 +3994,13 @@ TVisual:CreateToggle({
     flag = "esp_tracer",
     value = false,
     callback = function(v) Esp.tracer = v end,
+})
+
+TVisual:CreateToggle({
+    name = "Ignorar time",
+    flag = "esp_team",
+    value = false,
+    callback = function(v) Esp.ignoreTeam = v end,
 })
 
 TVisual:CreateToggle({
@@ -4040,6 +4145,30 @@ TVisual:CreateToggle({
             Window:Notify({ title = "Sem Drawing", content = "Este executor nao desenha na tela. O FOV continua valendo.", duration = 5 })
         end
     end,
+})
+
+TVisual:CreateToggle({
+    name = "Preencher FOV",
+    flag = "ov_fovfill",
+    value = false,
+    description = hasDrawing and "Circulo do FOV com preenchimento." or "Precisa de executor com Drawing.",
+    callback = function(v) Overlay.fovFill = v end,
+})
+
+TVisual:CreateColorPicker({
+    name = "Cor do preenchimento",
+    flag = "ov_fillcolor",
+    color = Color3.fromRGB(0, 150, 255),
+    callback = function(color) Overlay.fovFillColor = color end,
+})
+
+TVisual:CreateSlider({
+    name = "Transparencia do preenchimento",
+    flag = "ov_filltransp",
+    range = { 0, 1 },
+    increment = 0.05,
+    value = 0.7,
+    callback = function(v) Overlay.fovFillTransparency = v end,
 })
 
 TVisual:CreateToggle({
