@@ -1,0 +1,66 @@
+{
+  "alvo": {
+    "loader": "loadstring(game:HttpGet(\"https://scriptblox.com/raw/Trident-Survival-AV0X-223117\"))()",
+    "payload_efetivo": "https://raw.githubusercontent.com/PyhTeT/avox.lol/main/TridentSurvival",
+    "bytes": 1119824,
+    "sha256": "3ab49245490098c75b26f92751be713eda4c3d0616633e32a63a8a69983fe283",
+    "linhas": 2
+  },
+  "protecao": {
+    "primaria": "WeAreDevs Obfuscator v1.0.0",
+    "evidencia": "cabecalho \"--[[ v1.0.0 https://wearedevs.net/obfuscator ]]\"",
+    "camadas": [
+      "VM de despacho com tabela de strings em escapes decimais",
+      "renomeacao total de locais (v0..vN) e flattening de blocos",
+      "trava de ambiente: game.PlaceId + Kick('Game not support!')",
+      "anti-tamper: 'Tamper Detected!' quando debug.getupvalues e chamado",
+      "payloads aninhados carregados por game:HttpGet (UI e addons em texto puro)"
+    ],
+    "vms_personalizadas": 1,
+    "bytecode_luau": false,
+    "argumentos_entry_function": 26,
+    "outras_protecoes_detectadas": [
+      "nenhuma assinatura de Luraph, MoonSec, IronBrew ou Prometheus no payload"
+    ]
+  },
+  "codificacoes_detectadas": {
+    "escapes_decimais": 48972,
+    "blobs_base64_candidatos": 0,
+    "blobs_hex": 0,
+    "xor": "nao detectado como camada primaria (sem chave repetida de tamanho fixo)",
+    "base64_alfabeto_permutado": true,
+    "tabela_strings_vm_inicio": "\"\\051\\065\\085\\087\";\"\\105\\087\\113\\105\\068\\113\\073\\043\\120\\104\\061\\061\",\"\\113\\086\\072\\101\\051\\084\\101\\113\\080\\054\\108\\085\\077\\053\\051\\055\\077\\099\\061\\061\",\"\\100\\0"
+  },
+  "paylods_aninhados": {
+    "urls": [
+      "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua",
+      "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua",
+      "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua",
+      "https://wearedevs.net/obfuscator"
+    ],
+    "quantidade": 4,
+    "proveniencia": "1 lida no payload bruto; as demais aparecem no trace da VM (game:HttpGet)"
+  },
+  "recuperacao": {
+    "constantes_totais": 4313,
+    "constantes_legiveis": 655,
+    "menu_elementos": 166,
+    "linhas_reconstruidas": 522,
+    "formato_saida": "representacao intermediaria (trace), nao codigo-fonte original",
+    "strings_listadas": 655
+  },
+  "validacao": {
+    "sintaxe_luau": true,
+    "compilado_com": "luau oficial (loadstring do Luau CLI compilado na sandbox)",
+    "bytes_recovered_lua": 58864,
+    "loadstring_do_original": false,
+    "execucao_em_roblox": false
+  },
+  "ferramentas_usadas": {
+    "hutaoshusband/WeAreDevs-Deobfuscator": "extracao estatica: 4313 strings (independente do meu decoder, que deu 4312)",
+    "rconsoIe/wearedevs-deobfuscate": "mesmo conteudo do anterior (mirror); dumper exige Lua 5.1 e script inline, nao usado",
+    "Prometheus (trace)": "reconstrucao da sequencia executada pela VM",
+    "luau oficial": "execucao da VM e validacao de sintaxe",
+    "unluau / luau-decompiler / VortexDQ": "nao aplicaveis: payload nao e bytecode"
+  }
+}
