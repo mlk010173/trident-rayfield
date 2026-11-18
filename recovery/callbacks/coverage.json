@@ -1,0 +1,22 @@
+{
+  "passe": "callbacks com orcamento individual (2500 emits por callback)",
+  "menu_elementos": 166,
+  "callbacks_alcancados": 28,
+  "callbacks_com_corpo_util": [
+    "JumpShoot",
+    "HitboxTeamCheck",
+    "HitboxSleeperCheck",
+    "HitboxAICheck",
+    "HitboxEnable"
+  ],
+  "recuperado_por_completo": [
+    "JumpShoot (receita da plataforma)"
+  ],
+  "nao_recuperado": [
+    "corpos de combate (aimbot/silent) - precisam de EntityMap e camera reais",
+    "loops de ESP/Chams - abortam em matematica de vetor falsa",
+    "nomes de remotes alem de LocalPlayer.TCP",
+    "condicao de saida do loop do jumpshoot"
+  ],
+  "limitacao_medida": "o trace corta em 2500 emits por callback; loops infinitos consomem tudo e o pcall aborta o callback"
+}

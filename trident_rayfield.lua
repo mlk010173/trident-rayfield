@@ -421,7 +421,7 @@ local RawWindow
 do
     local config = {
         Title = "trident",
-        SubTitle = IS_MOBILE and "build 2.9 - mobile" or "build 2.9",
+        SubTitle = IS_MOBILE and "build 3.0 - mobile" or "build 3.0",
         TabWidth = 170,
         BaseKey = Enum.KeyCode.RightShift,
         Font = nil,
@@ -1224,6 +1224,82 @@ end
 addUpdater(function()
     if Hitbox.enabled then hitboxApply() end
 end)
+
+--=====================================================================
+-- 8.5 JUMP SHOOT (reconstruido do trace do AV0X)
+--   Part 4 x 0.2 x 4, Anchored, CanCollide, Material Neon, SpecialMesh
+--   rbxassetid://20329976, seguindo LocalCharacter.Middle - Vector3(0,3.5,0).
+--   Tudo em uma tabela unica: o chunk ja esta no limite de 200 locais do Lua 5.1.
+--=====================================================================
+local JumpShoot = {
+    enabled = false,
+    offset = 3.5,
+    transparency = 1,
+    part = nil,
+    conn = nil,
+}
+
+function JumpShoot.position()
+    local ok, pos = pcall(function()
+        local const = Workspace:FindFirstChild("Const")
+        local ignore = const and const:FindFirstChild("Ignore")
+        local char = ignore and ignore:FindFirstChild("LocalCharacter")
+        local middle = char and char:FindFirstChild("Middle")
+        if middle then return middle.Position end
+        local myChar = LocalPlayer.Character
+        local hrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        return hrp and hrp.Position
+    end)
+    if ok then return pos end
+    return nil
+end
+
+function JumpShoot.stop()
+    if JumpShoot.conn then
+        pcall(function() JumpShoot.conn:Disconnect() end)
+        JumpShoot.conn = nil
+    end
+    if JumpShoot.part then
+        pcall(function() JumpShoot.part:Destroy() end)
+        JumpShoot.part = nil
+    end
+end
+
+function JumpShoot.start()
+    JumpShoot.stop()
+    local part
+    local ok = pcall(function()
+        part = Instance.new("Part")
+        part.Name = "trident_jumpshoot"
+        part.Size = Vector3.new(4, 0.2, 4)
+        part.Anchored = true
+        part.CanCollide = true
+        part.Color = Color3.fromRGB(0, 0, 255)
+        part.Transparency = JumpShoot.transparency
+        part.Material = Enum.Material.Neon
+        pcall(function()
+            local mesh = Instance.new("SpecialMesh")
+            mesh.MeshType = Enum.MeshType.FileMesh
+            mesh.MeshId = "rbxassetid://20329976"
+            mesh.Parent = part
+        end)
+        part.Parent = Workspace
+    end)
+    if not ok or not part then return false end
+    JumpShoot.part = part
+    pcall(function()
+        JumpShoot.conn = RunService.Heartbeat:Connect(function()
+            if not JumpShoot.enabled or not JumpShoot.part then return end
+            local pos = JumpShoot.position()
+            if pos then
+                pcall(function()
+                    JumpShoot.part.Position = pos - Vector3.new(0, JumpShoot.offset, 0)
+                end)
+            end
+        end)
+    end)
+    return true
+end
 
 --=====================================================================
 -- 9. ESP
@@ -4533,6 +4609,47 @@ TMove:CreateToggle({
     callback = function(v) Move.speedEnabled = v end,
 })
 
+TMove:CreateSection({ name = "Jump shoot (plataforma)" })
+
+TMove:CreateToggle({
+    name = "Jump shoot",
+    flag = "js_enable",
+    value = false,
+    description = "Plataforma invisivel embaixo do player para atirar pulando (receita do AV0X).",
+    callback = function(v)
+        JumpShoot.enabled = v
+        if v then
+            if not JumpShoot.start() then
+                JumpShoot.enabled = false
+                Window:Notify({ title = "Jump shoot", content = "Nao consegui criar a plataforma aqui.", duration = 5 })
+            end
+        else
+            JumpShoot.stop()
+        end
+    end,
+})
+
+TMove:CreateSlider({
+    name = "Jump shoot altura",
+    flag = "js_offset",
+    range = { 0, 8 },
+    increment = 0.5,
+    value = 3.5,
+    callback = function(v) JumpShoot.offset = v end,
+})
+
+TMove:CreateSlider({
+    name = "Jump shoot transparencia",
+    flag = "js_transp",
+    range = { 0, 1 },
+    increment = 0.05,
+    value = 1,
+    callback = function(v)
+        JumpShoot.transparency = v
+        if JumpShoot.part then pcall(function() JumpShoot.part.Transparency = v end) end
+    end,
+})
+
 TMove:CreateSlider({
     name = "Velocidade",
     flag = "move_speed",
@@ -5043,6 +5160,8 @@ local function liftoff()
 
     Hitbox.enabled = false
     hitboxRestore()
+    JumpShoot.enabled = false
+    pcall(function() JumpShoot.stop() end)
 
     Esp.enabled = false
     Farm.enabled, Farm.killAura = false, false

@@ -68,3 +68,18 @@ render e o trace estoura antes de chegar a rede: limite medido, nao suposto.
 - Nao houve execucao em Roblox: o ambiente foi simulado.
 - A porcentagem de codigo recuperado nao e 100%. O que esta em `recovered.lua` e a
   representacao legivel mais completa obtida com prova de origem por linha.
+
+## 8. Segundo passe: callbacks com orcamento proprio
+
+Depois do menu completo, o trace passou a invocar os callbacks de cada elemento com
+um orcamento isolado de 2500 emits (funcao `__set_budget` injetada no ambiente),
+para que um loop infinito nao consuma o trace inteiro.
+
+Resultado: 28 callbacks alcancados, 5 com corpo util. O ganho real foi o **JumpShoot**,
+recuperado por completo como receita: Part 4x0.2x4, Anchored, CanCollide, Material Neon,
+SpecialMesh `rbxassetid://20329976`, seguindo `LocalCharacter.Middle - Vector3(0,3.5,0)`
+a cada Heartbeat. Isso virou o toggle "Jump shoot" do nosso build 3.0.
+
+O que continua fora: combate e ESP. Nao e limite de tecnica de trace, e sim de
+ambiente: esses corpos dependem de `EntityMap`, camera e Humanoid reais; com dummies
+a matematica de vetor aborta o caminho antes das chamadas de rede.

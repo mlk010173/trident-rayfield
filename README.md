@@ -168,3 +168,10 @@ Pacote AV0X integrado: containers `default`/`box`/`trash`, zonas `SafeZones` /
 - Aimbot e ESP com checagem de time (`sameTeam`, SafeMode independente).
 - FOV com preenchimento: toggle, cor e transparencia.
 - Janela abre sozinha (AutoShow) e botao flutuante "MENU" para toque.
+
+## build 3.0
+
+- novo: Jump shoot (plataforma invisivel sob o player) reconstruido do trace do AV0X,
+  com altura e transparencia ajustaveis.
+- correcao de engenharia: chunk estava no limite de 200 locais do Lua 5.1; modulo do
+  jumpshoot foi movido para uma tabela unica.
