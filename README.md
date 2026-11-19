@@ -175,3 +175,13 @@ Pacote AV0X integrado: containers `default`/`box`/`trash`, zonas `SafeZones` /
   com altura e transparencia ajustaveis.
 - correcao de engenharia: chunk estava no limite de 200 locais do Lua 5.1; modulo do
   jumpshoot foi movido para uma tabela unica.
+
+## build 3.1 - compatibilidade com o Trident real
+
+- Coleta de entidades entende o rig do Trident: personagem em `workspace.Ignore`
+  com partes `Middle`/`Top`/`Bottom` (nao existe `Head`). Antes disso o ESP e o aim
+  ficavam cegos no jogo real mesmo funcionando no mock.
+- Varredura tambem em `workspace.Ignore`, pulando `LocalCharacter`.
+- Alvo do aim cai para `Middle` quando nao ha `Head`; `rig` marcado por entidade.
+- Diagnostico mostra quantos alvos sao R6 e quantos sao do Trident, alem de
+  `Const.Ignore.FPSArms` e `Shared.entities`.

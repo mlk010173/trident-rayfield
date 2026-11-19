@@ -859,41 +859,86 @@ local function isSleeping(model)
     return false
 end
 
+-- O Trident nao usa rig R6/R15: o personagem fica em workspace.Ignore com as
+-- partes Middle/Top/Bottom (o "Head" nao existe). Sem isso o ESP e o aim ficam
+-- cegos no jogo real, mesmo funcionando no mock.
+local function tridentRig(model)
+    local ok, middle = pcall(function() return model:FindFirstChild("Middle") end)
+    if ok and middle then
+        local top = model:FindFirstChild("Top")
+        local bottom = model:FindFirstChild("Bottom")
+        return middle, top, bottom
+    end
+    return nil
+end
+
+local function entityFromModel(v, myChar)
+    if v == myChar or not v:IsA("Model") then return nil end
+    local head = v:FindFirstChild("Head")
+    local middle, top, bottom = tridentRig(v)
+    local torso = v:FindFirstChild("Torso") or v:FindFirstChild("UpperTorso") or v:FindFirstChild("LowerTorso")
+    local hum = v:FindFirstChildOfClass("Humanoid") or v:FindFirstChild("Humanoid")
+    local rig = nil
+    if head then
+        rig = "r6"
+    elseif middle then
+        rig = "trident"
+        head = middle
+        torso = torso or middle
+    else
+        return nil
+    end
+    local hp, maxHp = 100, 100
+    if hum then
+        pcall(function() hp = hum.Health; maxHp = hum.MaxHealth end)
+    end
+    if hp and hp <= 0 then return nil end
+    local plr = nil
+    pcall(function() plr = Players:GetPlayerFromCharacter(v) end)
+    local weapon = nil
+    pcall(function()
+        local tool = v:FindFirstChildOfClass("Tool")
+        if tool then weapon = tool.Name end
+    end)
+    if not weapon and v == myChar then weapon = equippedItemName() end
+    local isPlayer = plr ~= nil or Players:FindFirstChild(v.Name) ~= nil or v.Name == "Player"
+    return {
+        model = v,
+        head = head,
+        middle = middle,
+        top = top,
+        bottom = bottom,
+        torso = torso,
+        humanoid = hum,
+        hp = hp,
+        maxHp = maxHp,
+        weapon = weapon,
+        isPlayer = isPlayer,
+        rig = rig,
+    }
+end
+
 local function collectEntities()
     local out = {}
     local myChar = LocalPlayer.Character
-    for _, v in pairs(Workspace:GetChildren()) do
-        if v ~= Game.root and v ~= myChar and v:IsA("Model") then
-            local head = v:FindFirstChild("Head")
-            local torso = v:FindFirstChild("Torso") or v:FindFirstChild("UpperTorso") or v:FindFirstChild("LowerTorso")
-            local hum = v:FindFirstChildOfClass("Humanoid") or v:FindFirstChild("Humanoid")
-            if head and hum then
-                local hp, maxHp = 100, 100
-                pcall(function() hp = hum.Health; maxHp = hum.MaxHealth end)
-                if not hp or hp > 0 then
-                    -- GetPlayerFromCharacter e a unica forma confiavel de
-                    -- separar player de NPC (nome do modelo engana)
-                    local plr = nil
-                    pcall(function() plr = Players:GetPlayerFromCharacter(v) end)
-                    local weapon = nil
-                    pcall(function()
-                        local tool = v:FindFirstChildOfClass("Tool")
-                        if tool then weapon = tool.Name end
-                    end)
-                    if not weapon and v == LocalPlayer.Character then
-                        weapon = equippedItemName()
+    local sources = { Workspace }
+    local ignore = Workspace:FindFirstChild("Ignore")
+    if ignore then
+        sources[#sources + 1] = ignore
+        local localChar = ignore:FindFirstChild("LocalCharacter")
+        if localChar then myChar = myChar or localChar end
+    end
+    local seen = {}
+    for _, source in ipairs(sources) do
+        local okList, children = pcall(function() return source:GetChildren() end)
+        if okList and type(children) == "table" then
+            for _, v in ipairs(children) do
+                if not seen[v] and v ~= Game.root then
+                    local okEnt, ent = pcall(entityFromModel, v, myChar)
+                    if okEnt and ent then
+                        seen[v] = true
+                        out[#out + 1] = ent
                     end
-                    local isPlayer = plr ~= nil or Players:FindFirstChild(v.Name) ~= nil or v.Name == "Player"
-                    table.insert(out, {
-                        model = v,
-                        head = head,
-                        torso = torso,
-                        humanoid = hum,
-                        hp = hp,
-                        maxHp = maxHp,
-                        weapon = weapon,
-                        isPlayer = isPlayer,
-                    })
                 end
             end
         end
@@ -5129,7 +5174,21 @@ TConfig:CreateButton({
         Log:add("modo seguro: " .. (SafeMode.enabled and "ativo" or "desligado"))
         Log:add("silent aim de projetil: " .. tostring(ProjectileAim.status))
         Log:add("Highlight: " .. tostring(select(1, pcall(function() local h = Instance.new("Highlight"); h:Destroy() end)) and "ok" or "indisponivel"))
-        Log:add("alvos vistos: " .. tostring(#getEntities(true)))
+        local alvos = getEntities(true)
+        local r6, trident = 0, 0
+        for _, ent in ipairs(alvos) do
+            if ent.rig == "trident" then trident = trident + 1 else r6 = r6 + 1 end
+        end
+        Log:add("alvos vistos: " .. tostring(#alvos) .. " (r6=" .. r6 .. " trident=" .. trident .. ")")
+        Log:add("FPSArms: " .. tostring(pcall(function()
+            local c = Workspace:FindFirstChild("Const")
+            return c and c:FindFirstChild("Ignore") and c.Ignore:FindFirstChild("FPSArms") ~= nil
+        end)))
+        Log:add("Shared.entities: " .. tostring(pcall(function()
+            local rs = game:GetService("ReplicatedStorage")
+            local sh = rs:FindFirstChild("Shared")
+            return sh and sh:FindFirstChild("entities") ~= nil
+        end)))
         Window:Notify({ title = "Diagnostico", content = "Veja a aba Config > Console.", duration = 4 })
     end,
 })
