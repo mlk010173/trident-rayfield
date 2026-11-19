@@ -1,0 +1,30 @@
+{
+  "arquivo": "/tmp/avox.lua",
+  "bytes": 1119824,
+  "protecao": [
+    "WeAreDevs v1.0.0"
+  ],
+  "tabela_strings": {
+    "entradas": 4313,
+    "bytes_decodificados": 48952,
+    "entropia": 5.845,
+    "razao_imprimivel": 1.0
+  },
+  "estrutura": {
+    "funcoes_anonimas": 31,
+    "largura_instrucao_candidata": 8,
+    "periodicidade": 0.036
+  },
+  "amostra": [
+    "3AUW",
+    "iWqiDqI+xh==",
+    "qVHe3TeqP6lUM537Mc==",
+    "d3T7tWFNjKmXtAC=",
+    "f9MCvE+ugvaHi94=",
+    "QnRolHUYDwHM",
+    "/lH3AcFXng6lyDNX",
+    "lRHVqJ==",
+    "ScNxWTb=",
+    "M0QfrLE9cJ=="
+  ]
+}

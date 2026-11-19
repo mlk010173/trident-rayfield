@@ -62,3 +62,19 @@ nosso `trident_rayfield.lua` (build 3.2). So entrou o que serve ao nosso context
 - Bootstrap em `repeat ... until` dos tres caminhos: melhora robustez em servidor
   lento, mas mexe no fluxo de inicializacao que ja esta estavel; candidato para 3.4.
 - Clonagem de hooks no unload: so relevante se instalarmos mais de um hook.
+
+## 8. Pipeline unico (`deob/wad_lift.py`)
+
+O roteiro de deofuscacao em JavaScript nao se aplica (o alvo e Lua), entao a versao
+Lua do mesmo pipeline ficou num script so:
+
+1. deteccao de protecao (WeAreDevs, LOL-VM, MoonSec, Luraph, bytecode);
+2. extracao e unescape da tabela de strings;
+3. analise estrutural (entropia, razao imprimivel, periodicidade para estimar largura
+   de instrucao);
+4. relatorio JSON (`deob/wad_lift_report.json`).
+
+Rodado no AV0X: 1.119.824 bytes, WeAreDevs v1.0.0 confirmado, 4.313 entradas na tabela,
+48.952 bytes decodificados, entropia 5,845 e razao imprimivel 1,0. Isso mostra que a
+tabela guarda texto base64, nao bytecode: a instrucao real so aparece depois do decode
+com alfabeto permutado, que ja roda em `deob/deob_wearedevs.py`.
