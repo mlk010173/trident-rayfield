@@ -421,7 +421,7 @@ local RawWindow
 do
     local config = {
         Title = "trident",
-        SubTitle = IS_MOBILE and "build 3.0 - mobile" or "build 3.0",
+        SubTitle = IS_MOBILE and "build 3.2 - mobile" or "build 3.2",
         TabWidth = 170,
         BaseKey = Enum.KeyCode.RightShift,
         Font = nil,
@@ -5180,15 +5180,53 @@ TConfig:CreateButton({
             if ent.rig == "trident" then trident = trident + 1 else r6 = r6 + 1 end
         end
         Log:add("alvos vistos: " .. tostring(#alvos) .. " (r6=" .. r6 .. " trident=" .. trident .. ")")
-        Log:add("FPSArms: " .. tostring(pcall(function()
+
+        -- checks diretos, com resultado legivel (antes saia "true true")
+        local fpsArms, fpsCount = false, 0
+        pcall(function()
             local c = Workspace:FindFirstChild("Const")
-            return c and c:FindFirstChild("Ignore") and c.Ignore:FindFirstChild("FPSArms") ~= nil
-        end)))
-        Log:add("Shared.entities: " .. tostring(pcall(function()
+            local ign = c and c:FindFirstChild("Ignore")
+            local arms = ign and ign:FindFirstChild("FPSArms")
+            if arms then
+                fpsArms = true
+                fpsCount = #arms:GetChildren()
+            end
+        end)
+        Log:add("Const.Ignore.FPSArms: " .. (fpsArms and ("ok (" .. fpsCount .. " filhos)") or "NAO ENCONTRADO"))
+
+        local sharedEntities, entityCount, entityKinds = false, 0, ""
+        pcall(function()
             local rs = game:GetService("ReplicatedStorage")
             local sh = rs:FindFirstChild("Shared")
-            return sh and sh:FindFirstChild("entities") ~= nil
-        end)))
+            local ents = sh and sh:FindFirstChild("entities")
+            if ents then
+                sharedEntities = true
+                local kids = ents:GetChildren()
+                entityCount = #kids
+                local names = {}
+                for i = 1, math.min(#kids, 8) do names[i] = kids[i].Name end
+                entityKinds = table.concat(names, ",")
+            end
+        end)
+        Log:add("Shared.entities: " .. (sharedEntities and ("ok (" .. entityCount .. ": " .. entityKinds .. ")") or "NAO ENCONTRADO"))
+
+        local tcpName, tcpOk = "NAO ENCONTRADO", false
+        pcall(function()
+            if Game.tcp then
+                tcpOk = true
+                tcpName = Game.tcp:GetFullName()
+            else
+                local tcp = LocalPlayer:FindFirstChild("TCP")
+                if tcp then
+                    tcpOk = true
+                    tcpName = tcp:GetFullName()
+                end
+            end
+        end)
+        Log:add("LocalPlayer.TCP: " .. tcpName)
+        Log:add("EntityMap: " .. (type(Game.entityMap) == "table" and "ok" or "nao resolvido (getgc)"))
+        Log:add("resumo: alvos=" .. #alvos .. " tcp=" .. (tcpOk and "ok" or "NAO") .. " fpsArms=" .. (fpsArms and "ok" or "NAO") .. " entities=" .. (sharedEntities and "ok" or "NAO"))
+
         Window:Notify({ title = "Diagnostico", content = "Veja a aba Config > Console.", duration = 4 })
     end,
 })
@@ -5262,7 +5300,7 @@ getgenv = getgenv or function() return _G end
 local genv = getgenv()
 if type(genv) == "table" then
     genv.trident_unload = liftoff
-    genv.trident = { Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Catalog = Catalog, Farm = Farm, ProjectileAim = ProjectileAim, Dash = Dash, Perf = Perf, SafeMode = SafeMode, Window = Window }
+    genv.trident = { Log = Log, Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Catalog = Catalog, Farm = Farm, ProjectileAim = ProjectileAim, Dash = Dash, Perf = Perf, SafeMode = SafeMode, Window = Window }
 end
 
 --=====================================================================

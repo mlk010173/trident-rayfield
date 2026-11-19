@@ -185,3 +185,13 @@ Pacote AV0X integrado: containers `default`/`box`/`trash`, zonas `SafeZones` /
 - Alvo do aim cai para `Middle` quando nao ha `Head`; `rig` marcado por entidade.
 - Diagnostico mostra quantos alvos sao R6 e quantos sao do Trident, alem de
   `Const.Ignore.FPSArms` e `Shared.entities`.
+
+## build 3.2 - diagnostico legivel
+
+- `Const.Ignore.FPSArms`: mostra ok + quantidade de filhos (antes saia "true true").
+- `Shared.entities`: mostra ok + contagem + ate 8 nomes de tipo.
+- `LocalPlayer.TCP`: procura direto em `LocalPlayer:FindFirstChild("TCP")` quando o
+  cache do `Game` nao resolveu.
+- `EntityMap`: estado explicito.
+- Linha `resumo: alvos=N tcp=ok fpsArms=ok entities=ok` para copiar e colar.
+- `Log` exposto em `genv.trident.Log` para ler as linhas fora da UI.
