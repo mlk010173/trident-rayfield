@@ -195,3 +195,12 @@ Pacote AV0X integrado: containers `default`/`box`/`trash`, zonas `SafeZones` /
 - `EntityMap`: estado explicito.
 - Linha `resumo: alvos=N tcp=ok fpsArms=ok entities=ok` para copiar e colar.
 - `Log` exposto em `genv.trident.Log` para ler as linhas fora da UI.
+
+## build 3.3 - identificacao de entidade por aparencia
+
+- `Catalog.signatures`: assinatura Color + Material + CollisionGroup de cada template
+  em `Shared.entities` (tecnica do swimhub/free_trident).
+- `Catalog.identify(model)`: reconhece Stone/Nitrate/Iron pelo MeshId 12939036056 e
+  pelos templates, sem depender do nome do modelo.
+- Ore ESP passa a usar a identificacao quando o filho `rock` nao existe.
+- Comparacao completa com os 4 repositorios em `docs/COMPARACAO_REFERENCIAS.md`.

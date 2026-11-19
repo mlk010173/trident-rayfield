@@ -1639,14 +1639,28 @@ local function updateOreEsp()
     local myPos = partPos(Game.middle)
 
     for _, v in pairs(Workspace:GetChildren()) do
-        if v:IsA("Model") and v.Name == "Model" then
+        if v:IsA("Model") and v ~= Game.root then
             local rock = findRock(v)
+            local kindIdent, partIdent = nil, nil
+            if not rock then
+                local okId, nameId, partId = pcall(Catalog.identify, v)
+                if okId and nameId and partId then
+                    kindIdent, partIdent = nameId, partId
+                    rock = partId
+                end
+            end
             if rock then
                 local pos = partPos(rock)
                 local dist = (pos and myPos) and (pos - myPos).Magnitude or 0
                 if pos and dist <= OreEsp.maxDistance then
                     alive[v] = true
                     local kind, color = oreLabelFor(v)
+                    if kindIdent then
+                        kind = kindIdent
+                        if kindIdent == "Iron" then color = Color3.fromRGB(199, 172, 120)
+                        elseif kindIdent == "Nitrate" then color = Color3.fromRGB(248, 248, 248)
+                        elseif kindIdent == "Stone" then color = Color3.fromRGB(205, 205, 205) end
+                    end
                     local obj = oreObjects[v]
                     if hasDrawing then
                         if not obj then
@@ -1738,6 +1752,48 @@ local Catalog = {
 
 local RESOURCE_NAMES = { "Tree", "Cactus", "Iron", "Nitrate", "Stone", "Rock", "Ore" }
 
+-- Identificacao por aparencia (tecnica do swimhub/free_trident): o template de
+-- cada entidade em Shared.entities tem um Model com PrimaryPart, e a assinatura
+-- Color + Material + CollisionGroup identifica a entidade no mapa mesmo quando o
+-- modelo em workspace nao tem nome util.
+Catalog.signatures = {}
+
+Catalog.identify = function(model)
+    local okMesh, mesh = pcall(function() return model:FindFirstChildOfClass("MeshPart") end)
+    if okMesh and mesh then
+        local okId, meshId = pcall(function() return mesh.MeshId end)
+        if okId and meshId == "rbxassetid://12939036056" then
+            local okKids, kids = pcall(function() return model:GetChildren() end)
+            if okKids and kids then
+                if #kids == 1 then return "Stone", kids[1] end
+                for i = 1, #kids do
+                    local part = kids[i]
+                    local okColor, color = pcall(function() return part.Color end)
+                    if okColor then
+                        if color == Color3.fromRGB(248, 248, 248) then return "Nitrate", part end
+                        if color == Color3.fromRGB(199, 172, 120) then return "Iron", part end
+                    end
+                end
+            end
+        end
+    end
+    local okPrimary, primary = pcall(function() return model.PrimaryPart end)
+    if okPrimary and primary then
+        local color, material, group
+        pcall(function()
+            color = primary.Color
+            material = primary.Material
+            group = primary.CollisionGroup
+        end)
+        for name, sig in pairs(Catalog.signatures) do
+            if color and color == sig.color and material == sig.material and group == sig.group then
+                return name, primary
+            end
+        end
+    end
+    return nil, nil
+end
+
 local function isResourceName(name)
     local low = string.lower(tostring(name or ""))
     for i = 1, #RESOURCE_NAMES do
@@ -1777,6 +1833,19 @@ local function loadCatalog()
     local ok = pcall(function()
         for _, child in ipairs(entities:GetChildren()) do
             local name = child.Name
+            local okModel, model = pcall(function() return child:FindFirstChild("Model") end)
+            if okModel and model then
+                local okPrimary, primary = pcall(function() return model.PrimaryPart end)
+                if okPrimary and primary then
+                    local okSig = pcall(function()
+                        Catalog.signatures[name] = {
+                            color = primary.Color,
+                            material = primary.Material,
+                            group = primary.CollisionGroup,
+                        }
+                    end)
+                end
+            end
             local low = string.lower(name)
             if low == "npc" or low == "npcs" then
                 -- pasta com um filho por tipo de NPC
