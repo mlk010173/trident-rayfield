@@ -15,6 +15,16 @@
     "largura_instrucao_candidata": 8,
     "periodicidade": 0.036
   },
+  "dobra_de_constantes": {
+    "expressoes_dobradas": 37370,
+    "bytes_antes": 1119824,
+    "bytes_depois": 710970,
+    "reducao": 0.3651
+  },
+  "dispatch_apos_dobra": [
+    "while z do a[z],L=a[z]-(1,L+(1)if-578020==a[z]then a[z],n[z]=nil,nil end z=W[L]end end,function(z,e,t,S)local Y5={}local PB,C,p,w,EB,D,XB,W5,CB,j,eB,i,H,FB,T,LB,A,o5,OB,sB,O,GB,nB,Q,BB,iB,HB,AB,WB,P5,xB,aB,I,qB,V5,z5,L5,q,S5,M5,vB,dB,ZB,E5,MB,SB,pB,mB,h,t5,RB,",
+    "while z do if z<8425542)then if z<4481744 then if z<2330150 then if z<988334 then if z<457886 then if z<216169)then if z<108478 then if z<59395 then if z<36047 then if z<15813)then if z<12300 then u=n[t[1]]z=u[P]E=z z=not E z=z and-5845327 or-4266218 else M=L("
+  ],
   "amostra": [
     "3AUW",
     "iWqiDqI+xh==",

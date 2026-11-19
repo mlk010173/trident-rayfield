@@ -72,6 +72,34 @@ def instruction_width(blob):
         if score > best: best, bestw = score, w
     return bestw, round(best, 3)
 
+
+NUM_OP = __import__("re").compile(r'(?<![\w.])(-?\d+)\s*([+\-])\s*\(?(-?\d+)\)?(?![\w.])')
+
+def fold_constants(text, max_passes=6):
+    """A VM WeAreDevs disfarca cada constante como soma/subtracao
+    (840618+-840617 = 1). Dobrar isso reduz o ruido e deixa a arvore de
+    dispatch legivel. Roda em passes ate estabilizar."""
+    total = 0
+    for _ in range(max_passes):
+        def repl(m):
+            a, op, b = int(m.group(1)), m.group(2), int(m.group(3))
+            return str(a + b if op == "+" else a - b)
+        new, count = NUM_OP.subn(repl, text)
+        total += count
+        if count == 0 or new == text:
+            break
+        text = new
+    return text, total
+
+
+def dispatch_slice(text, limit=3, width=260):
+    out = []
+    for i, m in enumerate(__import__("re").finditer(r"while z do", text)):
+        if i >= limit: break
+        out.append(text[m.start():m.start() + width])
+    return out
+
+
 def main(path):
     text = load(path)
     table = extract_table(text)
@@ -79,6 +107,7 @@ def main(path):
     blob = b"".join(strings)
     width, score = instruction_width(blob)
     printable = sum(1 for b in blob if 32 <= b < 127) / max(1, len(blob))
+    folded, folds = fold_constants(text)
     report = {
         "arquivo": path,
         "bytes": len(text),
@@ -94,9 +123,20 @@ def main(path):
             "largura_instrucao_candidata": width,
             "periodicidade": score,
         },
+        "dobra_de_constantes": {
+            "expressoes_dobradas": folds,
+            "bytes_antes": len(text),
+            "bytes_depois": len(folded),
+            "reducao": round(1 - len(folded) / max(1, len(text)), 4),
+        },
+        "dispatch_apos_dobra": dispatch_slice(folded),
         "amostra": [s.decode("latin1") for s in strings[:10] if s],
     }
     return report
 
 if __name__ == "__main__":
-    print(json.dumps(main(sys.argv[1]), ensure_ascii=False, indent=2))
+    r = main(sys.argv[1])
+    print(json.dumps(r, ensure_ascii=False, indent=2))
+    if len(sys.argv) > 2:
+        folded, _ = fold_constants(load(sys.argv[1]))
+        open(sys.argv[2], "w", encoding="latin1").write(folded)

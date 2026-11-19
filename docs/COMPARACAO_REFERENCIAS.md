@@ -78,3 +78,17 @@ Rodado no AV0X: 1.119.824 bytes, WeAreDevs v1.0.0 confirmado, 4.313 entradas na 
 48.952 bytes decodificados, entropia 5,845 e razao imprimivel 1,0. Isso mostra que a
 tabela guarda texto base64, nao bytecode: a instrucao real so aparece depois do decode
 com alfabeto permutado, que ja roda em `deob/deob_wearedevs.py`.
+
+### Incremento: dobra de constantes
+
+A VM WeAreDevs disfarca cada numero como soma ou subtracao (`840618+-840617` = 1) e
+esconde o despacho numa arvore de comparacoes. O `wad_lift.py` agora dobra essas
+expressoes em passes sucessivos:
+
+- 37.370 expressoes dobradas;
+- 1.119.824 -> 710.970 bytes (reducao de 36,5%);
+- a arvore de despacho passa a mostrar numero puro (`if -578020 == a[z] then`).
+
+Artefato: `deob/avox_folded.lua`. Aviso: a dobra e para leitura, nao garante sintaxe
+valida — quando havia parenteses aninhados sobra parentese orfao (`a[z]-(1`), entao o
+arquivo nao roda como esta.
