@@ -204,3 +204,12 @@ Pacote AV0X integrado: containers `default`/`box`/`trash`, zonas `SafeZones` /
   pelos templates, sem depender do nome do modelo.
 - Ore ESP passa a usar a identificacao quando o filho `rock` nao existe.
 - Comparacao completa com os 4 repositorios em `docs/COMPARACAO_REFERENCIAS.md`.
+
+## build 3.4 - bootstrap nao bloqueante
+
+- `Game.bootstrap`: espera em background (ate 120 s) o rig `Middle` e
+  `Shared.entities.Player.Model`, sem travar a UI.
+- `Game.ready` libera ESP/aim/hitbox/Jump shoot; `Game.tcp` e reportado a parte para
+  farm, dash e chat.
+- Catalogo recarregado ao fim do bootstrap, sem varredura vazia no primeiro segundo.
+- Diagnostico mostra o estado do bootstrap.

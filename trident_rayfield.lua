@@ -421,7 +421,7 @@ local RawWindow
 do
     local config = {
         Title = "trident",
-        SubTitle = IS_MOBILE and "build 3.2 - mobile" or "build 3.2",
+        SubTitle = IS_MOBILE and "build 3.4 - mobile" or "build 3.4",
         TabWidth = 170,
         BaseKey = Enum.KeyCode.RightShift,
         Font = nil,
@@ -664,7 +664,38 @@ local Game = {
     playerModule = nil, -- _G.Player
     tcpChatId = 23,
     tcpCrouchId = 2,
+    ready = false,
 }
+
+-- Bootstrap nao bloqueante (ideia do swimhub/free_trident): o jogo demora a
+-- criar LocalCharacter e o remote TCP, e a varredura saia vazia no primeiro
+-- segundo. Aqui a UI sobe na hora e este laco espera os tres caminhos.
+Game.bootstrap = function()
+    task.spawn(function()
+        local deadline = os.clock() + 120
+        while os.clock() < deadline do
+            pcall(Game.refresh)
+            local shared = ReplicatedStorage:FindFirstChild("Shared")
+            local entities = shared and shared:FindFirstChild("entities")
+            local playerTemplate = entities and entities:FindFirstChild("Player")
+            local model = playerTemplate and playerTemplate:FindFirstChild("Model")
+            -- ESP/aim/hitbox so precisam do rig + catalogo; farm, dash e chat
+            -- precisam do TCP. Separa os dois para nao travar o util por causa
+            -- do remote.
+            if Game.middle and model then Game.ready = true end
+            if Game.ready and Game.tcp then break end
+            task.wait(0.5)
+        end
+        if Game.ready then
+            Log:add("bootstrap: pronto (rig + Shared.entities.Player.Model) | tcp: "
+                .. (Game.tcp and "ok" or "nao encontrado"))
+            pcall(function() if not Catalog.loaded then loadCatalog() end end)
+        else
+            Log:add("bootstrap: incompleto (middle=" .. tostring(Game.middle ~= nil)
+                .. " tcp=" .. tostring(Game.tcp ~= nil) .. ")")
+        end
+    end)
+end
 
 function Game.refresh()
     -- a camera pode ser recriada ao trocar de mapa / respawnar
@@ -5227,6 +5258,7 @@ TConfig:CreateButton({
     callback = function()
         Game.refresh()
         Log:add("----- diagnostico -----")
+        Log:add("bootstrap: " .. (Game.ready and "pronto" or "aguardando (middle/tcp/entities)"))
         Log:add("personagem: " .. (Game.middle and "ok" or "NAO ENCONTRADO"))
         Log:add("remote TCP: " .. (Game.tcp and Game.tcp:GetFullName() or "NAO ENCONTRADO"))
         Log:add("Network: " .. (type(Game.network) == "table" and "ok" or "nao"))
@@ -5369,7 +5401,9 @@ getgenv = getgenv or function() return _G end
 local genv = getgenv()
 if type(genv) == "table" then
     genv.trident_unload = liftoff
-    genv.trident = { Log = Log, Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Catalog = Catalog, Farm = Farm, ProjectileAim = ProjectileAim, Dash = Dash, Perf = Perf, SafeMode = SafeMode, Window = Window }
+    pcall(Game.bootstrap)
+
+genv.trident = { Log = Log, Game = Game, Aim = Aim, Esp = Esp, Move = Move, Hitbox = Hitbox, Silent = Silent, Objects = Objects, Chams = Chams, WorldFx = WorldFx, Catalog = Catalog, Farm = Farm, ProjectileAim = ProjectileAim, Dash = Dash, Perf = Perf, SafeMode = SafeMode, Window = Window }
 end
 
 --=====================================================================
