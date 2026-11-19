@@ -92,3 +92,15 @@ expressoes em passes sucessivos:
 Artefato: `deob/avox_folded.lua`. Aviso: a dobra e para leitura, nao garante sintaxe
 valida — quando havia parenteses aninhados sobra parentese orfao (`a[z]-(1`), entao o
 arquivo nao roda como esta.
+
+### Correcao da dobra (dobra conservadora)
+
+A primeira versao da dobra consumia parenteses e corrompia a sintaxe (`a[z]-(1`).
+A versao final e conservadora: so dobra numero-op-numero, sem tocar em parenteses, e
+quando o resultado e negativo escreve `(0-5)` em vez de `-5`, porque `a--5` viraria
+comentario e comeria a linha inteira (o payload tem 2 linhas).
+
+- 27.971 expressoes dobradas; 1.119.824 -> 835.219 bytes (25,4%);
+- sem numero malformado e sem `--` acidental;
+- o arquivo segue nao compilavel no Lua 5.1 por "control structure too long", que e
+  limitacao do proprio alvo (funcao unica gigante), nao da dobra.

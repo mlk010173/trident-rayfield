@@ -73,7 +73,7 @@ def instruction_width(blob):
     return bestw, round(best, 3)
 
 
-NUM_OP = __import__("re").compile(r'(?<![\w.])(-?\d+)\s*([+\-])\s*\(?(-?\d+)\)?(?![\w.])')
+NUM_OP = __import__("re").compile(r'(?<![\w.])(-?\d+)\s*([+\-])\s*(-?\d+)(?![\w.])')
 
 def fold_constants(text, max_passes=6):
     """A VM WeAreDevs disfarca cada constante como soma/subtracao
@@ -83,13 +83,35 @@ def fold_constants(text, max_passes=6):
     for _ in range(max_passes):
         def repl(m):
             a, op, b = int(m.group(1)), m.group(2), int(m.group(3))
-            return str(a + b if op == "+" else a - b)
+            value = a + b if op == "+" else a - b
+            # "a--5" viraria comentario e comeria a linha inteira: usa (0-5)
+            return str(value) if value >= 0 else "(0" + str(value) + ")"
         new, count = NUM_OP.subn(repl, text)
         total += count
         if count == 0 or new == text:
             break
         text = new
     return text, total
+
+
+def clean_parens(text):
+    """Desfaz os parenteses orfaos que a dobra de constantes deixa:
+    -(-5) -> +5, +(-5) -> -5, -(5) -> -5 e (5) -> 5 em contexto de operador."""
+    import re as _re
+    total = 0
+    passes = [
+        (r'-\(-?(\d+)\)', lambda m: ('+' + m.group(1)) if m.group(1).startswith('-') else ('-' + m.group(1))),
+        (r'\+\(-?(\d+)\)', lambda m: ('-' + m.group(1)[1:]) if m.group(1).startswith('-') else ('+' + m.group(1))),
+        (r'(?<![\w\)\]])\((\d+)\)', lambda m: m.group(1)),
+    ]
+    for pattern, repl in passes:
+        text, n = _re.subn(pattern, repl, text)
+        total += n
+    return text, total
+
+
+def paren_balance(text):
+    return text.count("(") - text.count(")")
 
 
 def dispatch_slice(text, limit=3, width=260):
@@ -108,6 +130,7 @@ def main(path):
     width, score = instruction_width(blob)
     printable = sum(1 for b in blob if 32 <= b < 127) / max(1, len(blob))
     folded, folds = fold_constants(text)
+    parens = 0
     report = {
         "arquivo": path,
         "bytes": len(text),
@@ -128,6 +151,10 @@ def main(path):
             "bytes_antes": len(text),
             "bytes_depois": len(folded),
             "reducao": round(1 - len(folded) / max(1, len(text)), 4),
+        },
+        "limpeza_parenteses": {
+            "substituicoes": parens,  # desativado: a dobra conservadora nao deixa orfao
+            "saldo_parenteses": paren_balance(folded),
         },
         "dispatch_apos_dobra": dispatch_slice(folded),
         "amostra": [s.decode("latin1") for s in strings[:10] if s],
