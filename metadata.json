@@ -1,0 +1,5 @@
+{
+  "name": "Trident Analysis Workbench",
+  "description": "Static Luau VM deobfuscation lab, forensic artifact explorer, and UI configuration schema inspector migrated from trident-rayfield.",
+  "requestFramePermissions": []
+}
